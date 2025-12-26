@@ -1,0 +1,49 @@
+# Lecturer Service .dockerignore
+# Files/folders to exclude from Docker build context
+
+node_modules
+npm-debug.log
+yarn-error.log
+.env
+.env.local
+.env.*.local
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+*.test.js
+*.spec.js
+test/
+tests/
+
+# Documentation
+*.md
+docs/
+
+# Logs
+logs
+*.log
+
+# Build files
+dist
+build
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
