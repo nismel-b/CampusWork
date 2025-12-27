@@ -1,0 +1,100 @@
+# Docker Compose file for Student Service and its dependencies
+
+version: '3.8'
+
+services:
+  student-db:
+    image: postgres:15-alpine
+    container_name: student-db
+    environment:
+      POSTGRES_DB: student_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - student-db-data:/var/lib/postgresql/data
+    networks:
+      - campus-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - campus-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - campus-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  student-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: student-service
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DB_HOST: student-db
+      DB_PORT: 5432
+      DB_NAME: student_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://admin:admin@rabbitmq:5672
+      AUTH_SERVICE_URL: http://auth-service:3001
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      SERVICE_AUTH_TOKEN: shared-secret-token-between-services
+      CORS_ORIGIN: "*"
+      LOG_LEVEL: info
+    ports:
+      - "3002:3002"
+    depends_on:
+      student-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - campus-network
+    restart: unless-stopped
+
+volumes:
+  student-db-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  campus-network:
+    driver: bridge

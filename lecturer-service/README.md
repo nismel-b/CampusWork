@@ -1,18 +1,18 @@
 # Lecturer Service
 
-Lecturer profile management microservice for Campus eduproject.
+Lecturer profile management microservice for CampusWork.
 
 ## Features
 
-✅ Lecturer profile CRUD operations  
-✅ Academic rank and qualifications management  
-✅ Research interests and publications tracking  
-✅ Office hours and contact information  
-✅ Accepting students status  
-✅ Profile privacy controls  
-✅ Event-driven profile creation (listens to Auth Service events)  
-✅ Caching with Redis  
-✅ Service-to-service communication  
+ Lecturer profile CRUD operations  
+ Academic rank and qualifications management  
+ Research interests and publications tracking  
+ Office hours and contact information  
+ Accepting students status  
+ Profile privacy controls  
+ Event-driven profile creation (listens to Auth Service events)  
+ Caching with Redis  
+ Service-to-service communication  
 
 ## Prerequisites
 
@@ -187,9 +187,9 @@ curl -X PATCH http://localhost:3003/api/lecturers/profile/me/accepting-students 
 
 The Lecturer Service listens to these events from RabbitMQ:
 
-- `user.created` → Automatically creates lecturer profile for users with role 'lecturer'
-- `user.deleted` → Deletes lecturer profile
-- `user.updated` → Invalidates cache
+- `user.created` : Automatically creates lecturer profile for users with role 'lecturer'
+- `user.deleted` : Deletes lecturer profile
+- `user.updated` : Invalidates cache
 
 ## Architecture
 

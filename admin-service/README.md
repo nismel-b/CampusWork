@@ -1,30 +1,30 @@
 # Admin Service
 
-Admin management and monitoring service for Campus eduproject.
+Admin management and monitoring service for CampusWork.
 
 ## Features
 
-✅ **User Management**
+ **User Management**
 - Create, read, update, delete users
 - Suspend/activate user accounts
 - Change user roles
 - Reset user passwords
 - Bulk operations on multiple users
 
-✅ **Admin Logging & Audit**
+ **Admin Logging & Audit**
 - Track all admin actions
 - Searchable audit logs
 - Admin activity statistics
 - Target user history
 
-✅ **Platform Analytics**
+ **Platform Analytics**
 - Platform overview dashboard
 - User growth statistics
 - Activity metrics
 - Top users tracking
 - Data export functionality
 
-✅ **System Configuration**
+ **System Configuration**
 - Dynamic system settings
 - Configuration categories
 - Public/private configs
@@ -290,12 +290,12 @@ The service initializes with these default configs:
 
 ## Security Features
 
-✅ All endpoints require admin authentication
-✅ All admin actions are logged for audit
-✅ IP address and user agent tracking
-✅ Service-to-service authentication
-✅ Role-based access control
-✅ Graceful error handling
+ All endpoints require admin authentication
+ All admin actions are logged for audit
+ IP address and user agent tracking
+ Service-to-service authentication
+ Role-based access control
+ Graceful error handling
 
 ## Troubleshooting
 

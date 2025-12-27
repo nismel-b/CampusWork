@@ -1,6 +1,5 @@
 
-# DOCKERIGNORE - LECTURER SERVICE
-
+# DOCKERIGNORE - ADMIN SERVICE
 
 node_modules
 npm-debug.log
@@ -27,7 +26,4 @@ build
 Dockerfile
 docker-compose*.yml
 .dockerignore
-
-
-
 

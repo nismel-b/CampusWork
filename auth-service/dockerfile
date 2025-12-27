@@ -1,24 +1,49 @@
-FROM node:18-alpine
 
-# Create app directory
+# Build stage
+FROM node:18-alpine AS builder
+
 WORKDIR /usr/src/app
 
-# Install app dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm ci --only=production
 
-# Copy app source
+# Install ALL dependencies
+RUN npm ci
+
+# Copy application source
 COPY . .
 
+# Production stage
+FROM node:18-alpine
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install ONLY production dependencies
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy application from builder
+COPY --from=builder /usr/src/app/src ./src
+
 # Create logs directory
-RUN mkdir -p logs
+RUN mkdir -p logs && \
+    chown -R node:node /usr/src/app
+
+# Use non-root user for security
+USER node
 
 # Expose port
 EXPOSE 3001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start app
-CMD ["node", "src/server.js"] 
+# Start application with dumb-init
+CMD ["dumb-init", "node", "src/server.js"]

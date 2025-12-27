@@ -1,122 +1,23 @@
-# ==============================================
-# DOCKERFILE - ADMIN SERVICE
-# File: Dockerfile
-# ==============================================
+# Dockerfile for Admin Service
 
-# Build stage
 FROM node:18-alpine AS builder
-
 WORKDIR /usr/src/app
-
 COPY package*.json ./
 RUN npm ci
-
 COPY . .
 
-# Production stage
 FROM node:18-alpine
-
 RUN apk add --no-cache dumb-init
-
 WORKDIR /usr/src/app
-
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force
-
 COPY --from=builder /usr/src/app/src ./src
-
 RUN mkdir -p logs && chown -R node:node /usr/src/app
-
 USER node
-
 EXPOSE 3004
-
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3004/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
 CMD ["dumb-init", "node", "src/server.js"]
 
-# ==============================================
-# DOCKERIGNORE
-# File: .dockerignore
-# ==============================================
 
-node_modules
-npm-debug.log
-yarn-error.log
-.env
-.env.local
-.env.*.local
 
-.git
-.gitignore
-.gitattributes
-
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-.DS_Store
-Thumbs.db
-
-coverage
-*.test.js
-*.spec.js
-test/
-tests/
-
-*.md
-docs/
-
-logs
-*.log
-
-dist
-build
-
-Dockerfile
-docker-compose*.yml
-.dockerignore
-
-# ==============================================
-# ENVIRONMENT VARIABLES
-# File: .env.example
-# ==============================================
-
-# SERVICE CONFIGURATION
-NODE_ENV=development
-PORT=3004
-SERVICE_NAME=admin-service
-
-# DATABASE CONFIGURATION
-DB_HOST=admin-db
-DB_PORT=5432
-DB_NAME=admin_db
-DB_USER=postgres
-DB_PASSWORD=postgres
-
-# REDIS CONFIGURATION (optional for admin service)
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-# RABBITMQ CONFIGURATION (optional for admin service)
-RABBITMQ_URL=amqp://admin:admin@rabbitmq:5672
-
-# SERVICE-TO-SERVICE COMMUNICATION
-AUTH_SERVICE_URL=http://auth-service:3001
-STUDENT_SERVICE_URL=http://student-service:3002
-LECTURER_SERVICE_URL=http://lecturer-service:3003
-
-# JWT Secret (must match Auth Service)
-JWT_SECRET=your-super-secret-jwt-key-change-in-production
-
-# Service-to-service authentication token
-SERVICE_AUTH_TOKEN=shared-secret-token-between-services
-
-# CORS CONFIGURATION
-CORS_ORIGIN=*
-
-# LOGGING
-LOG_LEVEL=info

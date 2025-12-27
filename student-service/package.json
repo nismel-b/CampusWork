@@ -8,7 +8,7 @@
   },
   "keywords": ["student", "microservice", "education"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "amqplib": "^0.10.9",
