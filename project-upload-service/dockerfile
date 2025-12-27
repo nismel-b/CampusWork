@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Installation des dépendances
+COPY package*.json ./
+RUN npm install --production
+
+# Copie du code source
+COPY . .
+
+# Création du dossier uploads avec permissions
+RUN mkdir -p uploads && chown -R node:node uploads
+
+# Utiliser l'utilisateur node (sécurité)
+USER node
+
+EXPOSE 4001
+
+CMD ["node", "src/server.js"]

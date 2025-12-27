@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  upload-service:
+    build: .
+    container_name: upload_service
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - MONGO_URI=mongodb://mongo_upload:27017/project_upload
+      # ATTENTION: Mets ici l'URL réelle de ton auth service
+      # Si ton auth service tourne sur ton PC hors docker: http://host.docker.internal:3000
+      # Si ton auth service est aussi dans ce docker-compose: http://auth-service:3000
+      - AUTH_SERVICE_URL=http://host.docker.internal:3000 
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - mongo_upload
+    networks:
+      - app-network
+
+  mongo_upload:
+    image: mongo:6
+    container_name: mongo_upload
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongo_data:
