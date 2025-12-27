@@ -1,0 +1,35 @@
+# API Gateway Docker Compose Configuration
+
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: campus-api-gateway
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      STUDENT_SERVICE_URL: http://student-service:3002
+      LECTURER_SERVICE_URL: http://lecturer-service:3003
+      ADMIN_SERVICE_URL: http://admin-service:3004
+      PROJECT_SERVICE_URL: http://project-service:3005
+      CORS_ORIGIN: "*"
+      LOG_LEVEL: info
+    ports:
+      - "3000:3000"
+    networks:
+      - campus-network
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - student-service
+      - lecturer-service
+      - admin-service
+
+networks:
+  campus-network:
+    external: true
