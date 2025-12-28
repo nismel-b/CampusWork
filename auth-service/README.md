@@ -1,6 +1,6 @@
 # Auth Service
 
-Authentication and user management microservice for Campus eduproject.
+Authentication and user management microservice for CampusWork.
 
 ##  Features
 

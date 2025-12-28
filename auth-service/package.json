@@ -10,7 +10,7 @@
   },
   "keywords": ["auth", "microservice", "jwt"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
     "nodemon": "^3.1.11",

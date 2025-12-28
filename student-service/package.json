@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "test":"jest --coverage"
+    "test": "jest --coverage"
   },
   "keywords": ["student", "microservice", "education"],
   "author": "",
@@ -29,6 +29,8 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
   }
 }
