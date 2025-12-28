@@ -26,3 +26,6 @@ build
 Dockerfile
 docker-compose*.yml
 .dockerignore
+.prettierrc
+.eslintrc.json
+.editorconfig

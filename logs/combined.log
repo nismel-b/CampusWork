@@ -1,0 +1,54 @@
+{"allowedRoles":["admin"],"level":"warn","message":"Unauthorized role access attempt","role":"student","service":"api-gateway","timestamp":"2025-12-28 11:32:00"}
+{"allowedRoles":["admin"],"level":"warn","message":"Unauthorized role access attempt","role":"student","service":"api-gateway","timestamp":"2025-12-28 11:33:53"}
+{"allowedRoles":["admin"],"level":"warn","message":"Unauthorized role access attempt","role":"student","service":"api-gateway","timestamp":"2025-12-28 11:34:29"}
+{"allowedRoles":["admin"],"level":"warn","message":"Unauthorized role access attempt","role":"student","service":"api-gateway","timestamp":"2025-12-28 11:35:35"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:35:37"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:35:38","url":"/health"}
+{"duration":"31ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:35:38","url":"/health"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:35:37"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:35:37"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:35:38","url":"/health"}
+{"duration":"67ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:35:38","url":"/health"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:35:38","url":"/api/nonexistent"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:35:38","url":"/live"}
+{"duration":"2ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:35:38","url":"/live"}
+{"ip":"::ffff:127.0.0.1","level":"warn","message":"Route not found","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:35:38","url":"/api/nonexistent"}
+{"duration":"168ms","ip":"::ffff:127.0.0.1","level":"warn","message":"Request completed","method":"GET","service":"api-gateway","status":404,"timestamp":"2025-12-28 11:35:38","url":"/api/nonexistent"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:35:38","url":"/health"}
+{"duration":"2ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:35:38","url":"/health"}
+{"allowedRoles":["admin"],"level":"warn","message":"Unauthorized role access attempt","role":"student","service":"api-gateway","timestamp":"2025-12-28 11:36:08"}
+{"level":"error","message":"Circuit breaker test-service: OPEN after 3 failures","service":"api-gateway","timestamp":"2025-12-28 11:36:08"}
+{"level":"error","message":"Circuit breaker test-service: OPEN after 3 failures","service":"api-gateway","timestamp":"2025-12-28 11:36:08"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:36:09","url":"/health"}
+{"duration":"16ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:36:09","url":"/health"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:36:09"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:36:09","url":"/live"}
+{"duration":"1ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:36:09","url":"/live"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:36:09"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:36:09"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:36:09","url":"/health"}
+{"duration":"8ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:36:09","url":"/health"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:36:09","url":"/api/nonexistent"}
+{"ip":"::ffff:127.0.0.1","level":"warn","message":"Route not found","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:36:09","url":"/api/nonexistent"}
+{"duration":"61ms","ip":"::ffff:127.0.0.1","level":"warn","message":"Request completed","method":"GET","service":"api-gateway","status":404,"timestamp":"2025-12-28 11:36:09","url":"/api/nonexistent"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:36:09","url":"/health"}
+{"duration":"3ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:36:09","url":"/health"}
+{"level":"info","message":"Circuit breaker test-service: Attempting to close (HALF_OPEN)","service":"api-gateway","timestamp":"2025-12-28 11:36:09"}
+{"level":"error","message":"Circuit breaker test-service: OPEN after 3 failures","service":"api-gateway","timestamp":"2025-12-28 11:38:34"}
+{"level":"error","message":"Circuit breaker test-service: OPEN after 3 failures","service":"api-gateway","timestamp":"2025-12-28 11:38:34"}
+{"allowedRoles":["admin"],"level":"warn","message":"Unauthorized role access attempt","role":"student","service":"api-gateway","timestamp":"2025-12-28 11:38:35"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:38:35","url":"/health"}
+{"duration":"11ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:38:35","url":"/health"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:38:35"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:38:35","url":"/live"}
+{"duration":"1ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:38:35","url":"/live"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:38:35"}
+{"level":"info","message":"Resetting metrics","service":"api-gateway","timestamp":"2025-12-28 11:38:35"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:38:35","url":"/health"}
+{"duration":"8ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:38:35","url":"/health"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:38:35","url":"/api/nonexistent"}
+{"ip":"::ffff:127.0.0.1","level":"warn","message":"Route not found","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:38:35","url":"/api/nonexistent"}
+{"duration":"58ms","ip":"::ffff:127.0.0.1","level":"warn","message":"Request completed","method":"GET","service":"api-gateway","status":404,"timestamp":"2025-12-28 11:38:35","url":"/api/nonexistent"}
+{"ip":"::ffff:127.0.0.1","level":"info","message":"Incoming request","method":"GET","service":"api-gateway","timestamp":"2025-12-28 11:38:35","url":"/health"}
+{"duration":"2ms","ip":"::ffff:127.0.0.1","level":"info","message":"Request completed","method":"GET","service":"api-gateway","status":200,"timestamp":"2025-12-28 11:38:35","url":"/health"}
+{"level":"info","message":"Circuit breaker test-service: Attempting to close (HALF_OPEN)","service":"api-gateway","timestamp":"2025-12-28 11:38:36"}

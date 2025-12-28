@@ -1,0 +1,71 @@
+{
+  "name": "api-gateway",
+  "version": "1.0.0",
+  "description": "Single entry point for all CampusWork microservices.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --coverage --verbose",
+    "test:watch": "jest --watch",
+    "test:integration": "jest --testPathPattern=integration",
+    "lint": "eslint src/**/*.js",
+    "lint:fix": "eslint src/**/*.js --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nismel-b/CampusWork.git"
+  },
+  "keywords": [
+    "api-gateway",
+    "microservices",
+    "proxy",
+    "education",
+    "nodejs",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nismel-b/CampusWork/issues"
+  },
+  "homepage": "https://github.com/nismel-b/CampusWork#readme",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "http-proxy-middleware": "^3.0.5",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.1",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.2",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "supertest": "^7.1.4"
+  },
+  
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "js,json",
+    "ignore": [
+      "src/tests/*"
+    ],
+    "exec": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}
