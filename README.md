@@ -1,6 +1,6 @@
 # API Gateway
 
-Single entry point for all Campus eduproject microservices.
+Single entry point for all CampusWork microservices.
 
 ##  Features
 
@@ -165,7 +165,7 @@ curl -X GET http://localhost:3000/api/admin/users \
   -H "Authorization: Bearer ADMIN_ACCESS_TOKEN"
 ```
 
-## ⚙️ Configuration
+##  Configuration
 
 ### Environment Variables
 
@@ -226,7 +226,7 @@ The API Gateway implements rate limiting:
     └─────────┘    └─────────┘    └─────────┘   └─────────┘
 
 
-## 🔒 Security Features
+##  Security Features
 
 ### 1. JWT Authentication
 - Validates JWT tokens from Auth Service
@@ -254,7 +254,7 @@ The API Gateway implements rate limiting:
 - Strict-Transport-Security
 - Content-Security-Policy
 
-## 📊 Monitoring
+##  Monitoring
 
 ### Health Checks
 
@@ -331,7 +331,7 @@ tail -f logs/combined.log
 2. Check token expiration
 3. Ensure Bearer token format: `Bearer <token>`
 
-## 🧪 Testing
+##  Testing
 
 ```bash
 # Run all tests
@@ -341,7 +341,7 @@ npm test
 npm run test:coverage
 ```
 
-## 📦 Docker Commands
+##  Docker Commands
 
 ```bash
 # Build image
@@ -360,7 +360,7 @@ docker stop campus-api-gateway
 docker rm campus-api-gateway
 ```
 
-## 🚀 Deployment
+##  Deployment
 
 ### Production Checklist
 
@@ -389,18 +389,18 @@ CORS_ORIGIN=https://campus.eduproject.com
 LOG_LEVEL=info
 ```
 
-## 📚 Additional Resources
+##  Additional Resources
 
 - [Express.js Documentation](https://expressjs.com/)
 - [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware)
 - [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
 - [API Gateway Pattern](https://microservices.io/patterns/apigateway.html)
 
-## 📄 License
+##  License
 
 MIT
 
-## 👥 Contributing
+##  Contributing
 
 1. Fork the repository
 2. Create a feature branch
