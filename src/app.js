@@ -1,4 +1,4 @@
-/** 
+/**
  * Express application setup
  */
 const express = require('express');
@@ -18,7 +18,7 @@ const {
   apiLimiter, 
   authLimiter, 
   uploadLimiter,
-  dynamicRateLimiter 
+  dynamicRateLimiter
 } = require('./middleware/rateLimiter');
 const { requestLogger, errorLogger } = require('./middleware/logger');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
@@ -31,7 +31,8 @@ const { healthCheckHandler } = require('./proxy/healthCheck');
 const app = express();
 
 // Trust proxy (for production behind load balancer)
-if (securityConfig.trustedProxies.length > 0) {
+// securityConfig.trustedProxies expected to be an array (default provided in config/security)
+if (Array.isArray(securityConfig.trustedProxies) && securityConfig.trustedProxies.length > 0) {
   app.set('trust proxy', securityConfig.trustedProxies);
 } else {
   app.set('trust proxy', true);
@@ -126,18 +127,21 @@ app.get('/live', (req, res) => {
  * ======================
  * RATE LIMITING
  * ======================
+ *
+ * IMPORTANT: placer les rate-limiters spécifiques AVANT la règle générale ('/api')
+ * pour éviter que la règle générale ne capte tout et rende inopérante la règle spécifique.
  */
 
-// Apply general rate limiter to all API routes
-app.use('/api', dynamicRateLimiter);
-
-// Strict rate limiter for auth endpoints
+// Strict rate limiter for auth endpoints (do this before generic api limiter)
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 
-// Upload rate limiter for file operations
+// Upload rate limiter for file operations (specific)
 app.use('/api/projects/:projectId/files', uploadLimiter);
+
+// Apply general rate limiter to all API routes (after specifics)
+app.use('/api', dynamicRateLimiter);
 
 /**
  * ======================
@@ -145,7 +149,12 @@ app.use('/api/projects/:projectId/files', uploadLimiter);
  * ======================
  */
 
-// Setup routes from configuration
+// Validate routes is an array
+if (!Array.isArray(routes)) {
+  // prefer to fail fast in startup so misconfiguration is obvious
+  throw new Error('Route configuration invalid: routes must be an array');
+}
+
 routes.forEach(route => {
   const middleware = [];
 
@@ -157,8 +166,22 @@ routes.forEach(route => {
   }
 
   // Add role check if specified
-  if (route.roles && route.roles.length > 0) {
+  if (route.roles && Array.isArray(route.roles) && route.roles.length > 0) {
     middleware.push(checkRole(route.roles));
+  }
+
+  // If the route config is invalid (missing target), provide a friendly 502 response
+  if (!route.target) {
+    app.use(route.path, ...middleware, (req, res) => {
+      // This route is misconfigured on the gateway
+      return res.status(502).json({
+        success: false,
+        message: 'Bad gateway: target service not configured',
+        path: route.path,
+        requestId: req.id
+      });
+    });
+    return;
   }
 
   // Create proxy middleware

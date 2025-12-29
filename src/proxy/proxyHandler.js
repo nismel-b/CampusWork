@@ -1,3 +1,4 @@
+
 /**
  * HTTP proxy middleware for forwarding requests to microservices
  */
@@ -26,12 +27,17 @@ const getServiceNameFromPath = (path) => {
  * Create proxy middleware for a route
  */
 const createServiceProxy = (routeConfig) => {
+  const timeoutMs = routeConfig.timeout || 5000;
+  const proxyTimeoutMs = routeConfig.proxyTimeout || timeoutMs;
+
   return createProxyMiddleware({
     target: routeConfig.target,
     changeOrigin: true,
     pathRewrite: routeConfig.pathRewrite || {},
-    timeout: routeConfig.timeout || 5000,
-    
+    timeout: timeoutMs,
+    proxyTimeout: proxyTimeoutMs,
+    secure: routeConfig.secure !== undefined ? routeConfig.secure : true,
+
     /**
      * Modify request before sending to service
      */
@@ -49,11 +55,13 @@ const createServiceProxy = (routeConfig) => {
       }
 
       // Forward original client IP
-      const clientIp = req.ip || 
-                      req.headers['x-forwarded-for'] || 
-                      req.connection.remoteAddress;
-      proxyReq.setHeader('X-Forwarded-For', clientIp);
-      proxyReq.setHeader('X-Real-IP', clientIp);
+      const clientIp = req.ip ||
+                      req.headers['x-forwarded-for'] ||
+                      req.connection && req.connection.remoteAddress;
+      if (clientIp) {
+        proxyReq.setHeader('X-Forwarded-For', clientIp);
+        proxyReq.setHeader('X-Real-IP', clientIp);
+      }
 
       // Forward original host
       if (req.headers.host) {
@@ -77,30 +85,35 @@ const createServiceProxy = (routeConfig) => {
      * Modify response from service
      */
     onProxyRes: (proxyRes, req, res) => {
-      // Add custom headers to response
-      proxyRes.headers['x-proxied-by'] = 'campus-api-gateway';
-      proxyRes.headers['x-service'] = getServiceNameFromPath(req.path);
-      
-      if (req.id) {
-        proxyRes.headers['x-request-id'] = req.id;
-      }
+      try {
+        // Add custom headers to response (only if headers not already sent)
+        if (proxyRes && proxyRes.headers) {
+          proxyRes.headers['x-proxied-by'] = 'campus-api-gateway';
+          proxyRes.headers['x-service'] = getServiceNameFromPath(req.path);
+          if (req.id) {
+            proxyRes.headers['x-request-id'] = req.id;
+          }
+        }
 
-      logger.debug('Proxy response received', {
-        requestId: req.id,
-        statusCode: proxyRes.statusCode,
-        url: req.originalUrl,
-        service: getServiceNameFromPath(req.path)
-      });
-
-      // Log slow responses
-      const duration = Date.now() - req.startTime;
-      if (duration > 1000) {
-        logger.warn('Slow response detected', {
+        logger.debug('Proxy response received', {
           requestId: req.id,
+          statusCode: proxyRes.statusCode,
           url: req.originalUrl,
-          duration: `${duration}ms`,
           service: getServiceNameFromPath(req.path)
         });
+
+        // Log slow responses
+        const duration = Date.now() - (req.startTime || Date.now());
+        if (duration > 1000) {
+          logger.warn('Slow response detected', {
+            requestId: req.id,
+            url: req.originalUrl,
+            duration: `${duration}ms`,
+            service: getServiceNameFromPath(req.path)
+          });
+        }
+      } catch (err) {
+        logger.error('Error in onProxyRes handler', { error: err.message, stack: err.stack });
       }
     },
 
@@ -109,7 +122,7 @@ const createServiceProxy = (routeConfig) => {
      */
     onError: (err, req, res) => {
       const serviceName = getServiceNameFromPath(req.path);
-      
+
       logger.error('Proxy error', {
         requestId: req.id,
         error: err.message,
@@ -118,6 +131,17 @@ const createServiceProxy = (routeConfig) => {
         target: routeConfig.target,
         service: serviceName
       });
+
+      // Send response only if headers not already sent
+      if (res.headersSent) {
+        // If headers are already sent, just end the response
+        try {
+          res.end();
+        } catch (e) {
+          logger.error('Failed to end response after headersSent', { error: e.message });
+        }
+        return;
+      }
 
       // Handle specific error types
       if (err.code === 'ETIMEDOUT' || err.code === 'ECONNABORTED') {
