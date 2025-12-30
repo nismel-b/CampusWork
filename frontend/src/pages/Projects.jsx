@@ -1,4 +1,4 @@
-import ProjectCard from "../components/projectcard";
+import ProjectCard from "../components/UI/projectcard";
 import { useOutletContext } from "react-router-dom";
 
 export default function Projects() {

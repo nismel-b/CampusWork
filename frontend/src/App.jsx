@@ -1,14 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 
-import Login from "./pages/Login";
+import Login from "./pages/connexion/login";
 import CreateProject from "./pages/createProject";
 import StudentDashboard from "./pages/dashboard/studentDashboard";
 import LecturerDashboard from "./pages/dashboard/lecturerDashboard";
 import AdminDashboard from "./pages/dashboard/adminDashboard";
 import Projects from "./pages/Projects";
 
-import DashboardLayout from "./layout/layout";
+import DashboardLayout from "./components/layout/layout";
 
 function App() {
   const storedUser = JSON.parse(localStorage.getItem("user"));

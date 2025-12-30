@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 
-import Sidebar from "../components/sidebar";
-import ProjectCard from "../components/projectcard";
-import UploadModal from "../components/uploadmodal";
-import ProjectDetails from "../components/projectdetails";
+import Sidebar from "./sidebar";
+import ProjectCard from "../UI/projectcard";
+import UploadModal from "../UI/uploadmodal";
+import ProjectDetails from "../UI/projectdetails";
 
 import { Search, Plus } from "lucide-react";
 import { projectService } from "../services/projectService";
