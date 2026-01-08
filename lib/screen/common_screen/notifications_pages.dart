@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:campuswork/auth/auth_service.dart';
-import 'package:campuswork/services/notification-services.dart';
+import 'package:campuswork/services/notification_services.dart';
 import 'package:campuswork/model/notification.dart';
 
+//class pour afficher les notifications
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
@@ -23,7 +24,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   void _loadNotifications() {
     final currentUser = AuthService().currentUser;
     if (currentUser != null) {
-      final notifications = NotificationService().getNotificationsByUser(currentUser.id);
+      final notifications = NotificationService().getNotificationsByUser(currentUser.userId);
       setState(() => _notifications = notifications);
     }
   }
@@ -41,7 +42,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markAllAsRead() async {
     final currentUser = AuthService().currentUser;
     if (currentUser != null) {
-      await NotificationService().markAllAsRead(currentUser.id);
+      await NotificationService().markAllAsRead(currentUser.userId);
       _loadNotifications();
     }
   }

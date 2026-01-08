@@ -1,7 +1,6 @@
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -11,7 +10,7 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('store_buy.db');
+    _database = await _initDB('campuswork.db');
     return _database!;
   }
 
@@ -21,82 +20,40 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3, // Updated version for new columns
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _createDB(Database db, int version) async {
-
-    // Table Users
+    // ========================================
+    // TABLE: users
+    // ========================================
     await db.execute('''
-      CREATE TABLE user (
+      CREATE TABLE users (
         userId TEXT PRIMARY KEY,
-        username TEXT NOT NULL,
+        username TEXT UNIQUE NOT NULL,
         firstname TEXT NOT NULL,
-        lastname TEXT UNIQUE NOT NULL,
-        email TEXT,
-        phonenumber TEXT NOT NULL,
+        lastname TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phonenumber TEXT,
         password TEXT NOT NULL,
         userRole TEXT NOT NULL,
         isApproved INTEGER DEFAULT 1,
         createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
       )
     ''');
 
-    // Table Project
+    // ========================================
+    // TABLE: students
+    // ========================================
     await db.execute('''
-      CREATE TABLE project (
-        projectId TEXT PRIMARY KEY,
-        studentId TEXT NOT NULL,
-        projectName TEXT NOT NULL,
-        courseName TEXT,
-        description TEXT NOT NULL,
-        category TEXT,
-        imageurl TEXT,
-        collaborators TEXT,
-        architecturePatterns TEXT,
-        uml TEXT,
-        prototypeLink TEXT,
-        downloadLink TEXT,
-        status TEXT,
-        ressources TEXT,
-        prerequisites TEXT,
-        powerpointLink TEXT,
-        reportLink TEXT,
-        state TEXT,
-        grade DOUBLE ,
-        lecturerComment TEXT,
-        likesCount INTEGER DEFAULT 1,
-        commentsCount INTEGER DEFAULT 1,
-        createdAt TEXT NOT NULL,
-        updatedAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user (userId)
-      )
-    ''');
-
-    // Table lecturer
-    await db.execute('''
-      CREATE TABLE lecturer (
-        lecturerId TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
-        uniteDenseignement TEXT NOT NULL,
-        section TEXT NOT NULL,
-        evaluationGrid TEXT,
-        validationRequirements TEXT,
-        finalSubmissionRequirements TEXT,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-      )
-    ''');
-
-    // Table Student
-    await db.execute('''
-      CREATE TABLE student (
+      CREATE TABLE students (
         studentId TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
-        matricule TEXT NOT NULL,
+        userId TEXT NOT NULL UNIQUE,
+        matricule TEXT NOT NULL UNIQUE,
         birthday TEXT,
         level TEXT NOT NULL,
         semester TEXT NOT NULL, 
@@ -106,25 +63,111 @@ class DatabaseHelper {
         githubLink TEXT,
         linkedinLink TEXT,
         otherLink TEXT,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-        FOREIGN KEY (projectId) REFERENCES project (projectId)
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
       )
     ''');
 
-    // Table Projects Favorites
+    // ========================================
+    // TABLE: lecturers
+    // ========================================
+    await db.execute('''
+      CREATE TABLE lecturers (
+        lecturerId TEXT PRIMARY KEY,
+        userId TEXT NOT NULL UNIQUE,
+        uniteDenseignement TEXT NOT NULL,
+        section TEXT NOT NULL,
+        evaluationGrid TEXT,
+        validationRequirements TEXT,
+        finalSubmissionRequirements TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
+      )
+    ''');
+
+    // ========================================
+    // TABLE: projects
+    // ========================================
+    await db.execute('''
+      CREATE TABLE projects (
+        projectId TEXT PRIMARY KEY,
+        studentId TEXT NOT NULL,
+        projectName TEXT NOT NULL,
+        courseName TEXT,
+        description TEXT NOT NULL,
+        category TEXT,
+        imageUrl TEXT,
+        collaborators TEXT,
+        architecturePatterns TEXT,
+        uml TEXT,
+        prototypeLink TEXT,
+        downloadLink TEXT,
+        status TEXT DEFAULT 'draft',
+        resources TEXT,
+        prerequisites TEXT,
+        powerpointLink TEXT,
+        reportLink TEXT,
+        state TEXT DEFAULT 'pending',
+        grade REAL,
+        lecturerComment TEXT,
+        likesCount INTEGER DEFAULT 0,
+        commentsCount INTEGER DEFAULT 0,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (studentId) REFERENCES students (studentId) ON DELETE CASCADE
+      )
+    ''');
+
+    // ========================================
+    // TABLE: project_images
+    // ========================================
+    await db.execute('''
+      CREATE TABLE project_images (
+        imageId TEXT PRIMARY KEY,
+        projectId TEXT NOT NULL,
+        imageUrl TEXT NOT NULL,
+        description TEXT,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE
+      )
+    ''');
+
+    // ========================================
+    // TABLE: project_favorites
+    // ========================================
     await db.execute('''
       CREATE TABLE project_favorites (
         favoriteId TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
         projectId TEXT NOT NULL,
         createdAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-        FOREIGN KEY (projectId) REFERENCES project (projectId),
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE,
         UNIQUE(userId, projectId)
       )
     ''');
 
-    // Table Messages
+    // ========================================
+    // TABLE: project_history
+    // ========================================
+    await db.execute('''
+      CREATE TABLE project_history (
+        historyId TEXT PRIMARY KEY,
+        projectId TEXT NOT NULL,
+        action TEXT NOT NULL,
+        details TEXT,
+        userId TEXT,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE,
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE SET NULL
+      )
+    ''');
+
+    // ========================================
+    // TABLE: messages
+    // ========================================
     await db.execute('''
       CREATE TABLE messages (
         messageId TEXT PRIMARY KEY,
@@ -134,45 +177,52 @@ class DatabaseHelper {
         isRead INTEGER DEFAULT 0,
         synced INTEGER DEFAULT 0,
         createdAt TEXT NOT NULL,
-        FOREIGN KEY (senderId) REFERENCES user (userId),
-        FOREIGN KEY (receiverId) REFERENCES user (userId)
+        FOREIGN KEY (senderId) REFERENCES users (userId) ON DELETE CASCADE,
+        FOREIGN KEY (receiverId) REFERENCES users (userId) ON DELETE CASCADE
       )
     ''');
 
-    // Table Reviews
+    // ========================================
+    // TABLE: reviews
+    // ========================================
     await db.execute('''
       CREATE TABLE reviews (
         reviewId TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
         projectId TEXT NOT NULL,
-        rating INTEGER NOT NULL,
+        rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
         comment TEXT,
         createdAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-        FOREIGN KEY (projectId) REFERENCES project (projectId)
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE,
+        UNIQUE(userId, projectId)
       )
     ''');
 
-    // Table Stories
+    // ========================================
+    // TABLE: stories
+    // ========================================
     await db.execute('''
       CREATE TABLE stories (
         storyId TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
         imageUrl TEXT NOT NULL,
-        type TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'announcement',
         title TEXT NOT NULL,
         description TEXT NOT NULL,
         projectId TEXT,
         createdAt TEXT NOT NULL,
         expiresAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-        FOREIGN KEY (projectId) REFERENCES project (projectId)
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE SET NULL
       )
     ''');
 
-    // Table Notifications
+    // ========================================
+    // TABLE: notifications
+    // ========================================
     await db.execute('''
-      CREATE TABLE notification (
+      CREATE TABLE notifications (
         notificationId TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
         projectId TEXT,
@@ -180,119 +230,161 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         message TEXT NOT NULL,
         isRead INTEGER DEFAULT 0,
-        relatedAt TEXT,
+        relatedId TEXT,
         createdAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-        FOREIGN KEY (projectId) REFERENCES project (projectId)
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE SET NULL
       )
     ''');
 
-    // Table ProjectHistory
+    // ========================================
+    // TABLE: cards (Kanban/Tasks)
+    // ========================================
     await db.execute('''
-      CREATE TABLE projet_history (
-        historyId TEXT PRIMARY KEY,
-        projectId TEXT NOT NULL,
-        action TEXT NOT NULL,
-        details TEXT,
-        userId TEXT,
-        createdAt TEXT NOT NULL,
-        FOREIGN KEY (projectId) REFERENCES project (projectId),
-        FOREIGN KEY (userId) REFERENCES user (userId)
-      )
-    ''');
-
-
-    // Table Card
-    await db.execute('''
-      CREATE TABLE card (
+      CREATE TABLE cards (
         cardId TEXT PRIMARY KEY,
         userId TEXT NOT NULL,
         projectId TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT DEFAULT 'todo',
+        priority INTEGER DEFAULT 0,
+        dueDate TEXT,
         createdAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-        FOREIGN KEY (projectId) REFERENCES project (projectId)
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE
       )
     ''');
 
-    // Table notation
+    // ========================================
+    // TABLE: notations (Grading/Evaluation)
+    // ========================================
     await db.execute('''
-      CREATE TABLE notation(
-        notatiobId TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
+      CREATE TABLE notations (
+        notationId TEXT PRIMARY KEY,
+        projectId TEXT NOT NULL,
         lecturerId TEXT NOT NULL,
-        priority INTEGER DEFAULT 0,
-        status TEXT NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
+        studentId TEXT NOT NULL,
+        grade REAL,
+        criteria TEXT,
+        comment TEXT,
+        status TEXT DEFAULT 'pending',
         createdAt TEXT NOT NULL,
-        FOREIGN KEY (userId) REFERENCES user (userId),
-        FOREIGN KEY (projectId) REFERENCES project (projectId)
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE,
+        FOREIGN KEY (lecturerId) REFERENCES lecturers (lecturerId) ON DELETE CASCADE,
+        FOREIGN KEY (studentId) REFERENCES students (studentId) ON DELETE CASCADE
       )
     ''');
+
+    // ========================================
+    // TABLE: surveys
+    // ========================================
+    await db.execute('''
+      CREATE TABLE surveys (
+        surveyId TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        question TEXT NOT NULL,
+        type TEXT NOT NULL,
+        options TEXT,
+        createdAt TEXT NOT NULL,
+        expiresAt TEXT,
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
+      )
+    ''');
+
+    // ========================================
+    // TABLE: survey_responses
+    // ========================================
+    await db.execute('''
+      CREATE TABLE survey_responses (
+        responseId TEXT PRIMARY KEY,
+        surveyId TEXT NOT NULL,
+        userId TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (surveyId) REFERENCES surveys (surveyId) ON DELETE CASCADE,
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
+        UNIQUE(surveyId, userId)
+      )
+    ''');
+
+    // ========================================
+    // TABLE: onboarding_status
+    // ========================================
+    await db.execute('''
+      CREATE TABLE onboarding_status (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId TEXT NOT NULL UNIQUE,
+        completed INTEGER DEFAULT 0,
+        currentStep INTEGER DEFAULT 0,
+        FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
+      )
+    ''');
+
+    // ========================================
+    // INDEXES for better performance
+    // ========================================
+    await db.execute('CREATE INDEX idx_users_email ON users(email)');
+    await db.execute('CREATE INDEX idx_users_username ON users(username)');
+    await db.execute('CREATE INDEX idx_students_matricule ON students(matricule)');
+    await db.execute('CREATE INDEX idx_students_userId ON students(userId)');
+    await db.execute('CREATE INDEX idx_lecturers_userId ON lecturers(userId)');
+    await db.execute('CREATE INDEX idx_projects_studentId ON projects(studentId)');
+    await db.execute('CREATE INDEX idx_projects_status ON projects(status)');
+    await db.execute('CREATE INDEX idx_messages_senderId ON messages(senderId)');
+    await db.execute('CREATE INDEX idx_messages_receiverId ON messages(receiverId)');
+    await db.execute('CREATE INDEX idx_notifications_userId ON notifications(userId)');
+    await db.execute('CREATE INDEX idx_notifications_isRead ON notifications(isRead)');
+
+    debugPrint('✅ Database created successfully with version $version');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    debugPrint('🔄 Upgrading database from version $oldVersion to $newVersion');
+
     if (oldVersion < 2) {
-      // Add new tables for version 2
+      // Add project_history table
       await db.execute('''
-        CREATE TABLE projet_history (
-        historyId TEXT PRIMARY KEY,
-        projectId TEXT NOT NULL,
-        action TEXT NOT NULL,
-        details TEXT,
-        userId TEXT,
-        createdAt TEXT NOT NULL,
-        FOREIGN KEY (projectId) REFERENCES project (projectId),
-        FOREIGN KEY (userId) REFERENCES user (userId)
-      )
+        CREATE TABLE IF NOT EXISTS project_history (
+          historyId TEXT PRIMARY KEY,
+          projectId TEXT NOT NULL,
+          action TEXT NOT NULL,
+          details TEXT,
+          userId TEXT,
+          createdAt TEXT NOT NULL,
+          FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE,
+          FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE SET NULL
+        )
       ''');
 
-      // Update stories table to add new columns
-      await db.execute('''
-        ALTER TABLE stories ADD COLUMN type TEXT DEFAULT 'announcement'
-      ''').catchError((e) {
-        // Column might already exist
-      });
+      // Update stories table
+      await db.execute('ALTER TABLE stories ADD COLUMN type TEXT DEFAULT "announcement"').catchError((e) => debugPrint('Column type already exists'));
+      await db.execute('ALTER TABLE stories ADD COLUMN title TEXT').catchError((e) => debugPrint('Column title already exists'));
+      await db.execute('ALTER TABLE stories ADD COLUMN description TEXT').catchError((e) => debugPrint('Column description already exists'));
+      await db.execute('ALTER TABLE stories ADD COLUMN projectId TEXT').catchError((e) => debugPrint('Column projectId already exists'));
 
-      await db.execute('''
-        ALTER TABLE stories ADD COLUMN title TEXT
-      ''').catchError((e) {});
+      // Update messages table
+      await db.execute('ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0').catchError((e) => debugPrint('Column isRead already exists'));
+      await db.execute('ALTER TABLE messages ADD COLUMN synced INTEGER DEFAULT 0').catchError((e) => debugPrint('Column synced already exists'));
 
-      await db.execute('''
-        ALTER TABLE stories ADD COLUMN description TEXT
-      ''').catchError((e) {});
+      // Update projects table
+      await db.execute('ALTER TABLE projects ADD COLUMN updatedAt TEXT').catchError((e) => debugPrint('Column updatedAt already exists'));
 
+      // Add project_images table
       await db.execute('''
-        ALTER TABLE stories ADD COLUMN projectId TEXT
-      ''').catchError((e) {});
-
-      // Add isRead and synced columns to messages table
-      await db.execute('''
-        ALTER TABLE messages ADD COLUMN isRead INTEGER DEFAULT 0
-      ''').catchError((e) {});
-
-      await db.execute('''
-        ALTER TABLE messages ADD COLUMN synced INTEGER DEFAULT 0
-      ''').catchError((e) {});
-
-      // Add update column to orders table
-      await db.execute('''
-        ALTER TABLE project ADD COLUMN updatedAt TEXT
-      ''').catchError((e) {});
-
-      // Table projects Photos
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS project_image (
+        CREATE TABLE IF NOT EXISTS project_images (
           imageId TEXT PRIMARY KEY,
           projectId TEXT NOT NULL,
-          imageurl TEXT NOT NULL,
+          imageUrl TEXT NOT NULL,
           description TEXT,
           createdAt TEXT NOT NULL,
-          FOREIGN KEY (projectId) REFERENCES project (projectId)
+          FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE
         )
-      ''').catchError((e) {});
+      ''');
 
-      // Table Surveys
+      // Add surveys tables
       await db.execute('''
         CREATE TABLE IF NOT EXISTS surveys (
           surveyId TEXT PRIMARY KEY,
@@ -302,11 +394,10 @@ class DatabaseHelper {
           options TEXT,
           createdAt TEXT NOT NULL,
           expiresAt TEXT,
-          FOREIGN KEY (userId) REFERENCES user (userId)
+          FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
         )
-      ''').catchError((e) {});
+      ''');
 
-      // Table Survey Responses
       await db.execute('''
         CREATE TABLE IF NOT EXISTS survey_responses (
           responseId TEXT PRIMARY KEY,
@@ -314,27 +405,155 @@ class DatabaseHelper {
           userId TEXT NOT NULL,
           answer TEXT NOT NULL,
           createdAt TEXT NOT NULL,
-          FOREIGN KEY (surveyId) REFERENCES surveys (surveyId),
-          FOREIGN KEY (userId) REFERENCES user (userId),
+          FOREIGN KEY (surveyId) REFERENCES surveys (surveyId) ON DELETE CASCADE,
+          FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
           UNIQUE(surveyId, userId)
         )
-      ''').catchError((e) {});
+      ''');
 
-      // Table Onboarding Status
       await db.execute('''
         CREATE TABLE IF NOT EXISTS onboarding_status (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          userId TEXT NOT NULL,
+          userId TEXT NOT NULL UNIQUE,
           completed INTEGER DEFAULT 0,
-          FOREIGN KEY (userId) REFERENCES user (userId)
+          FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
         )
-      ''').catchError((e) {});
+      ''');
+    }
+
+    if (oldVersion < 3) {
+      // Rename old tables if they exist
+      await _renameTableIfExists(db, 'user', 'users');
+      await _renameTableIfExists(db, 'project', 'projects');
+      await _renameTableIfExists(db, 'student', 'students');
+      await _renameTableIfExists(db, 'lecturer', 'lecturers');
+      await _renameTableIfExists(db, 'notification', 'notifications');
+      await _renameTableIfExists(db, 'card', 'cards');
+      await _renameTableIfExists(db, 'notation', 'notations');
+
+      // Add missing columns to students
+      await db.execute('ALTER TABLE students ADD COLUMN createdAt TEXT').catchError((e) => debugPrint('Column createdAt already exists'));
+      await db.execute('ALTER TABLE students ADD COLUMN updatedAt TEXT').catchError((e) => debugPrint('Column updatedAt already exists'));
+
+      // Add missing columns to lecturers
+      await db.execute('ALTER TABLE lecturers ADD COLUMN createdAt TEXT').catchError((e) => debugPrint('Column createdAt already exists'));
+      await db.execute('ALTER TABLE lecturers ADD COLUMN updatedAt TEXT').catchError((e) => debugPrint('Column updatedAt already exists'));
+
+      // Fix cards table structure
+      await db.execute('ALTER TABLE cards ADD COLUMN title TEXT').catchError((e) => debugPrint('Column title already exists'));
+      await db.execute('ALTER TABLE cards ADD COLUMN description TEXT').catchError((e) => debugPrint('Column description already exists'));
+      await db.execute('ALTER TABLE cards ADD COLUMN status TEXT DEFAULT "todo"').catchError((e) => debugPrint('Column status already exists'));
+      await db.execute('ALTER TABLE cards ADD COLUMN priority INTEGER DEFAULT 0').catchError((e) => debugPrint('Column priority already exists'));
+      await db.execute('ALTER TABLE cards ADD COLUMN dueDate TEXT').catchError((e) => debugPrint('Column dueDate already exists'));
+      await db.execute('ALTER TABLE cards ADD COLUMN updatedAt TEXT').catchError((e) => debugPrint('Column updatedAt already exists'));
+
+      // Fix notations table structure
+      await db.execute('ALTER TABLE notations ADD COLUMN studentId TEXT').catchError((e) => debugPrint('Column studentId already exists'));
+      await db.execute('ALTER TABLE notations ADD COLUMN grade REAL').catchError((e) => debugPrint('Column grade already exists'));
+      await db.execute('ALTER TABLE notations ADD COLUMN criteria TEXT').catchError((e) => debugPrint('Column criteria already exists'));
+      await db.execute('ALTER TABLE notations ADD COLUMN comment TEXT').catchError((e) => debugPrint('Column comment already exists'));
+      await db.execute('ALTER TABLE notations ADD COLUMN updatedAt TEXT').catchError((e) => debugPrint('Column updatedAt already exists'));
+    }
+
+    if (oldVersion < 4) {
+      // Add indexes for better performance
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_students_matricule ON students(matricule)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_students_userId ON students(userId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_lecturers_userId ON lecturers(userId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_projects_studentId ON projects(studentId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_messages_senderId ON messages(senderId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_messages_receiverId ON messages(receiverId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notifications_userId ON notifications(userId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notifications_isRead ON notifications(isRead)');
+
+      // Add onboarding step tracking
+      await db.execute('ALTER TABLE onboarding_status ADD COLUMN currentStep INTEGER DEFAULT 0').catchError((e) => debugPrint('Column currentStep already exists'));
+    }
+
+    debugPrint('✅ Database upgrade completed successfully');
+  }
+
+  Future<void> _renameTableIfExists(Database db, String oldName, String newName) async {
+    try {
+      final tables = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        [oldName],
+      );
+
+      if (tables.isNotEmpty) {
+        await db.execute('ALTER TABLE $oldName RENAME TO $newName');
+        debugPrint('✅ Renamed table $oldName to $newName');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not rename table $oldName: $e');
     }
   }
 
-  Future<void> close() async {
+  // ========================================
+  // UTILITY METHODS
+  // ========================================
+
+  Future<void> clearAllTables() async {
     final db = await database;
-    await db.close();
+    final tables = [
+      'survey_responses',
+      'surveys',
+      'onboarding_status',
+      'notations',
+      'cards',
+      'notifications',
+      'stories',
+      'reviews',
+      'messages',
+      'project_history',
+      'project_favorites',
+      'project_images',
+      'projects',
+      'lecturers',
+      'students',
+      'users',
+    ];
+
+    for (final table in tables) {
+      await db.delete(table);
+    }
+    debugPrint('🗑️ All tables cleared');
+  }
+
+  Future<void> deleteDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, 'campuswork.db');
+    await databaseFactory.deleteDatabase(path);
+    _database = null;
+    debugPrint('🗑️ Database deleted');
+  }
+
+  Future<void> close() async {
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null;
+      debugPrint('🔒 Database closed');
+    }
+  }
+
+  // Get database info
+  Future<Map<String, dynamic>> getDatabaseInfo() async {
+    final db = await database;
+    final version = await db.getVersion();
+    final path = db.path;
+
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+    );
+
+    return {
+      'version': version,
+      'path': path,
+      'tables': tables.map((t) => t['name']).toList(),
+    };
   }
 }
-

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:campuswork/services/project-services.dart';
+import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/model/project.dart';
 import 'package:campuswork/components/projects/project_card.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:campuswork/model/project.dart';
-import 'package:campuswork/services/project-services.dart';
+import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/services/card_service.dart';
 
 

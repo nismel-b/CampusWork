@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 //import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
-import 'package:campuswork/services/project-services.dart';
+import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/auth/auth_service.dart';
 import 'package:campuswork/services/like-services.dart';
 import 'package:campuswork/services/comment-service.dart';

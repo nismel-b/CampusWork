@@ -4,13 +4,13 @@ import 'package:campuswork/model/user.dart';
 import 'package:campuswork/auth/login_page.dart';
 import 'package:campuswork/auth/register_page.dart';
 import 'package:campuswork/screen/screen_student/dashboard/dashboard.dart';
-import 'package:campuswork/components/projects/create-project.dart';
-import 'package:campuswork/screen/screen_student/dashboard/my-project.dart';
+import 'package:campuswork/screen/screen_student/projects/create-project.dart';
+import 'package:campuswork/screen/screen_student/dashboard/my_project.dart';
 import 'package:campuswork/screen/screen_lecturer/dashboard/dashboard.dart';
 import 'package:campuswork/screen/screen_admin/dashboard/dashboard.dart';
-import 'package:campuswork/components/projects/project-grid.dart';
-import 'package:campuswork/components/projects/project_details.dart';
-import 'package:campuswork/screen/common_screen/notifications-pages.dart';
+import 'package:campuswork/screen/screen_student/projects/project-grid.dart';
+import 'package:campuswork/screen/screen_student/projects/project_details.dart';
+import 'package:campuswork/screen/common_screen/notifications_pages.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -23,7 +23,7 @@ final router = GoRouter(
     }
 
     if (isLoggedIn && state.uri.path == '/') {
-      switch (currentUser!.role) {
+      switch (currentUser!.userRole) {
         case UserRole.student:
           return '/student-dashboard';
         case UserRole.lecturer:

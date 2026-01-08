@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:store_buy/service/store_history_service.dart';
-import 'package:store_buy/service/store_service.dart';
-import 'package:store_buy/providers/auth_provider.dart';
+import 'package:campuswork/services/project_history.dart';
+import 'package:campuswork/services/project_service.dart';
+import 'package:campuswork/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-class StoreHistoryScreen extends StatefulWidget {
-  final String? storeId;
-  const StoreHistoryScreen({super.key, this.storeId});
+class ProjectHistoryScreen extends StatefulWidget {
+  final String? projectId;
+  const ProjectHistoryScreen({super.key, this.projectId});
 
   @override
-  State<StoreHistoryScreen> createState() => _StoreHistoryScreenState();
+  State<ProjectHistoryScreen> createState() => _ProjectHistoryScreenState();
 }
 
-class _StoreHistoryScreenState extends State<StoreHistoryScreen> {
-  final StoreHistoryService _historyService = StoreHistoryService();
-  final StoreService _storeService = StoreService();
+class _ProjectHistoryScreenState extends State<ProjectHistoryScreen> {
+  final ProjectHistoryService _historyService = ProjectHistoryService();
+  final ProjectService _ProjectService = ProjectService();
   List<Map<String, dynamic>> _history = [];
   Map<String, dynamic>? _stats;
-  String? _selectedStoreId;
+  String? _selectedProjectId;
   int _selectedMonths = 3;
   bool _isLoading = true;
 
@@ -30,29 +30,29 @@ class _StoreHistoryScreenState extends State<StoreHistoryScreen> {
 
   Future<void> _loadData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (widget.storeId != null) {
-      _selectedStoreId = widget.storeId;
+    if (widget.projectId != null) {
+      _selectedProjectId = widget.projectId;
     } else if (authProvider.currentUser != null) {
-      final stores = await _storeService.getStoresByUserId(
+      final projects = await _ProjectService.getHistoryByProject(
         authProvider.currentUser!.userId,
       );
-      if (stores.isNotEmpty) {
-        _selectedStoreId = stores.first['storeId'];
+      if (projects.isNotEmpty) {
+        _selectedProjectId = projects.first['projectId'];
       }
     }
 
-    if (_selectedStoreId != null) {
+    if (_selectedProjectId != null) {
       final endDate = DateTime.now();
       final startDate = endDate.subtract(Duration(days: 30 * _selectedMonths));
       
-      final history = await _historyService.getHistoryByStore(
-        _selectedStoreId!,
+      final history = await _historyService.getHistoryByProject(
+        _selectedProjectId!,
         startDate: startDate,
         endDate: endDate,
       );
       
       final stats = await _historyService.getMonthlyStats(
-        _selectedStoreId!,
+        _selectedProjectId!,
         _selectedMonths,
       );
 

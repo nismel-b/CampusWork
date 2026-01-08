@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:campuswork/model/project.dart';
-import 'package:campuswork/services/project-services.dart';
-import 'package:campuswork/database/database_helper.dart';
+import 'package:campuswork/services/project_service.dart';
+
 
 class ProjectProvider with ChangeNotifier {
   final ProjectService _projectService = ProjectService();

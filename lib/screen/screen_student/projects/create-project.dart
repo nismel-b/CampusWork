@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:campuswork/auth/auth_service.dart';
-import 'package:campuswork/services/project-services.dart';
+import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/model/project.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -102,7 +102,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         .toList(); 
 
     final project = Project(
-      id: const Uuid().v4(),
+      projectId: const Uuid().v4(),
       projectName: _nameController.text.trim(),
       courseName: _courseController.text.trim(),
       description: _descriptionController.text.trim(),
@@ -115,7 +115,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
       powerpointLink: _powerpointLinkController.text.trim(),
       reportLink: _reportLinkController.text.trim() ,
       grade: _gradeController.text.trim() ,
-      studentId: AuthService().User!.id,
+      studentId: AuthService().currentUser!.userId,
       architecturePatterns: _architectureController.text.trim().isEmpty
           ? null
           : _architectureController.text.trim(),

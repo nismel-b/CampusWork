@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:campuswork/auth/auth_service.dart';
+import 'package:campuswork/auth/oauth_service.dart';
 import 'package:campuswork/model/user.dart';
 
 class LoginPage extends StatefulWidget {
@@ -12,14 +13,14 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -29,35 +30,113 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => _isLoading = true);
 
-    final success = await AuthService().loginUser(
-      username: '',
-      password: '',
-    );
-
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (success != null && mounted) {
-      // final user = AuthService().loginUser;
-      switch (UserRole.userRole) {
-        case UserRole.student:
-          context.go('/student-dashboard');
-        case UserRole.lecturer:
-          context.go('/lecturer-dashboard');
-        case UserRole.admin:
-          context.go('/admin-dashboard');
-        case UserRole.userRole:
-          // TODO: Handle this case.
-          throw UnimplementedError();
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email ou mot de passe incorrect, ou compte non approuvé'),
-          backgroundColor: Colors.red,
-        ),
+    try {
+      final user = await AuthService().loginUser(
+        username: _usernameController.text.trim(),
+        password: _passwordController.text,
       );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (user != null) {
+        // Navigation basée sur le rôle
+        _navigateBasedOnRole(user.userRole);
+      } else {
+        _showErrorSnackBar('Nom d\'utilisateur ou mot de passe incorrect, ou compte non approuvé');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Une erreur est survenue: $e');
     }
+  }
+
+  Future<void> _loginWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await OAuthService().signInWithGoogle();
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (user != null) {
+        _navigateBasedOnRole(user.userRole);
+      } else {
+        _showErrorSnackBar('Connexion Google annulée ou échouée');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Erreur lors de la connexion Google: $e');
+    }
+  }
+
+  Future<void> _loginWithGitHub() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await OAuthService().signInWithGitHub();
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (user != null) {
+        _navigateBasedOnRole(user.userRole);
+      } else {
+        _showErrorSnackBar('Connexion GitHub annulée ou échouée');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Erreur lors de la connexion GitHub: $e');
+    }
+  }
+
+  Future<void> _loginWithLinkedIn() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final user = await OAuthService().signInWithLinkedIn();
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (user != null) {
+        _navigateBasedOnRole(user.userRole);
+      } else {
+        _showErrorSnackBar('Connexion LinkedIn annulée ou échouée');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Erreur lors de la connexion LinkedIn: $e');
+    }
+  }
+
+  void _navigateBasedOnRole(UserRole userRole) {
+    switch (userRole) {
+      case UserRole.student:
+        context.go('/student-dashboard');
+        break;
+      case UserRole.lecturer:
+        context.go('/lecturer-dashboard');
+        break;
+      case UserRole.admin:
+        context.go('/admin-dashboard');
+        break;
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -75,52 +154,63 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Logo
                     Icon(
                       Icons.school,
-                      size: 64,
+                      size: 80,
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(height: 24),
+
+                    // Title
                     Text(
-                      'Plateforme Académique',
-                      style: Theme.of(context).textTheme.displaySmall,
+                      'CampusWork',
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
+
+                    // Subtitle
                     Text(
-                      'Gestion de Projets Étudiants',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      'Gestion de Projets Académiques',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[600],
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 48),
+
+                    // Username Field
                     TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
+                      controller: _usernameController,
                       decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
+                        labelText: 'Nom d\'utilisateur',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Veuillez entrer votre email';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Email invalide';
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Veuillez entrer votre nom d\'utilisateur';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
+
+                    // Password Field
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Mot de passe',
                         prefixIcon: const Icon(Icons.lock_outlined),
+                        border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          ),
                           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                         ),
                       ),
@@ -132,46 +222,142 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton(
+
+                    // Login Button
+                    FilledButton(
                       onPressed: _isLoading ? null : _login,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
                       child: _isLoading
                           ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                          : const Text('Se connecter'),
+                          : const Text(
+                        'Se connecter',
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                     const SizedBox(height: 16),
+
+                    // Register Button
                     OutlinedButton(
-                      onPressed: () => context.push('/register'),
-                      child: const Text('Créer un compte'),
+                      onPressed: _isLoading ? null : () => context.push('/register'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Créer un compte',
+                        style: TextStyle(fontSize: 16),
+                      ),
                     ),
                     const SizedBox(height: 32),
-                   /* Container(
+
+                    // Divider
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'OU',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: Colors.grey[300])),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Social Login Text
+                    Text(
+                      'Se connecter avec',
+                      style: TextStyle(color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Social Login Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildSocialButton(
+                          icon: Icons.g_mobiledata,
+                          label: 'Google',
+                          color: const Color(0xFFDB4437),
+                          onTap: _loginWithGoogle,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildSocialButton(
+                          icon: Icons.code,
+                          label: 'GitHub',
+                          color: Colors.black,
+                          onTap: _loginWithGitHub,
+                        ),
+                        const SizedBox(width: 12),
+                        _buildSocialButton(
+                          icon: Icons.business,
+                          label: 'LinkedIn',
+                          color: const Color(0xFF0077B5),
+                          onTap: _loginWithLinkedIn,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Test Accounts Info (optional - uncomment if needed)
+                    Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
+                        color: Colors.blue.withValues(alpha:0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Theme.of(context).dividerColor,
+                          color: Colors.blue.withValues(alpha:0.2),
                         ),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '📚 Comptes de test',
-                            style: Theme.of(context).textTheme.titleSmall,
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 20,
+                                color: Colors.blue[700],
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Comptes de test',
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: Colors.blue[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          _buildTestAccount(
+                            role: 'Enseignant',
+                            username: 'admin',
+                            password: 'admin123',
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Admin: admin@school.edu / admin123\nEnseignant: marie.dubois@school.edu / lecturer123\nÉtudiant: jean.martin@student.school.edu / student123',
-                            style: Theme.of(context).textTheme.bodySmall,
+                          _buildTestAccount(
+                            role: 'Étudiant',
+                            username: 'student',
+                            password: 'student123',
                           ),
                         ],
                       ),
-                    ),*/
+                    ),
                   ],
                 ),
               ),
@@ -181,6 +367,82 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-}
 
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: _isLoading ? null : onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 28, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTestAccount({
+    required String role,
+    required String username,
+    required String password,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                role,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Username: $username',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+              Text(
+                'Password: $password',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.copy, size: 18),
+          onPressed: () {
+            // TODO: Implement copy to clipboard
+            _showErrorSnackBar('Credentials copied!');
+          },
+          tooltip: 'Copier',
+        ),
+      ],
+    );
+  }
+}
 

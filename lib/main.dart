@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'navigation/app_route.dart';
 import 'theme/theme.dart';
 import 'auth/auth_service.dart';
-import 'services/project-services.dart';
+import 'services/project_service.dart';
 import 'services/comment-service.dart';
 import 'services/like-services.dart';
-import 'services/notification-services.dart';
+import 'services/notification_services.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

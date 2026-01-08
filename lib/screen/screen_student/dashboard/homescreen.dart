@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:store_buy/providers/auth_provider.dart';
-import 'package:store_buy/service/store_service.dart';
+import 'package:campuswork/providers/auth_provider.dart';
+import 'package:campuswork/service/store_service.dart';
 import 'package:store_buy/service/product_service.dart';
 import 'package:store_buy/model/product_model.dart';
 import 'package:store_buy/constants/app_colors.dart';

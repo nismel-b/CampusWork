@@ -1,6 +1,6 @@
 
 import 'package:flutter/foundation.dart';
-import 'package:store_buy/database/database_helper.dart';
+import 'package:campuswork/database/database_helper.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 
@@ -12,7 +12,7 @@ class SupportService {
     required String userId,
     required String subject,
     required String message,
-    String? storeId,
+    String? projectId,
   }) async {
     try {
       final db = await _dbHelper.database;
@@ -22,7 +22,7 @@ class SupportService {
       await db.insert('support_tickets', {
         'ticketId': ticketId,
         'userId': userId,
-        'storeId': storeId,
+        'projectId': projectId,
         'subject': subject,
         'message': message,
         'status': 'open',
@@ -52,14 +52,14 @@ class SupportService {
     }
   }
 
-  // Get tickets by store
-  Future<List<Map<String, dynamic>>> getTicketsByStore(String storeId) async {
+  // Get tickets by project
+  Future<List<Map<String, dynamic>>> getTicketsByProject(String projectId) async {
     try {
       final db = await _dbHelper.database;
       return await db.query(
         'support_tickets',
-        where: 'storeId = ?',
-        whereArgs: [storeId],
+        where: 'projectId = ?',
+        whereArgs: [projectId],
         orderBy: 'createdAt DESC',
       );
     } catch (e) {

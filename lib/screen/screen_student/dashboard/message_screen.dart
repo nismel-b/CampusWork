@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:store_buy/service/message_service.dart';
-import 'package:store_buy/providers/auth_provider.dart';
+import 'package:campuswork/services/message_service.dart';
+import 'package:campuswork/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-class VendorMessageScreen extends StatefulWidget {
-  const VendorMessageScreen({super.key});
+class UserMessageScreen extends StatefulWidget {
+  const UserMessageScreen({super.key});
 
   @override
-  State<VendorMessageScreen> createState() => _VendorMessageScreenState();
+  State<UserMessageScreen> createState() => _UserMessageScreenState();
 }
 
-class _VendorMessageScreenState extends State<VendorMessageScreen> {
+class _UserMessageScreenState extends State<UserMessageScreen> {
   final MessageService _messageService = MessageService();
   final TextEditingController _messageController = TextEditingController();
   List<Map<String, dynamic>> _conversations = [];

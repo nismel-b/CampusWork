@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:store_buy/service/story_service.dart';
-import 'package:store_buy/service/store_service.dart';
-import 'package:store_buy/service/product_service.dart';
-import 'package:store_buy/providers/auth_provider.dart';
+import 'package:campuswork/services/story_service.dart';
+import 'package:campuswork/services/project_service.dart';
+import 'package:campuswork/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -17,11 +16,10 @@ class StoriesScreen extends StatefulWidget {
 
 class _StoriesScreenState extends State<StoriesScreen> {
   final StoryService _storyService = StoryService();
-  final StoreService _storeService = StoreService();
-  final ProductService _productService = ProductService();
+  final ProjectService _projectService = ProjectService();
   List<Map<String, dynamic>> _stories = [];
-  List<Map<String, dynamic>> _products = [];
-  String? _selectedStoreId;
+  List<Map<String, dynamic>> _projects = [];
+  String? _selectedProjectId;
   bool _isLoading = true;
 
   @override
@@ -32,23 +30,23 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
   Future<void> _loadData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (widget.storeId != null) {
-      _selectedStoreId = widget.storeId;
+    if (widget.projectId != null) {
+      _selectedProjectId = widget.projectId;
     } else if (authProvider.currentUser != null) {
-      final stores = await _storeService.getStoresByUserId(
+      final projects = await _projectService.getProjectByUserId(
         authProvider.currentUser!.userId,
       );
-      if (stores.isNotEmpty) {
-        _selectedStoreId = stores.first['storeId'];
+      if (projects.isNotEmpty) {
+        _selectedProjectId = projects.first['projectId'];
       }
     }
 
-    if (_selectedStoreId != null) {
-      final stories = await _storyService.getStoriesByStore(_selectedStoreId!);
-      final products = await _productService.getProductsByStore(_selectedStoreId!);
+    if (_selectedProjectId != null) {
+      final stories = await _storyService.getStoriesByProject(_selectedProjectId!);
+      final projects = await _projectService.getProjectsByUserId(_selectedProjectId!);
       setState(() {
         _stories = stories;
-        _products = products;
+        _projects = projects;
         _isLoading = false;
       });
     } else {
@@ -59,18 +57,17 @@ class _StoriesScreenState extends State<StoriesScreen> {
   Future<void> _addStory(String type) async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => _AddStoryDialog(products: _products, type: type),
+      builder: (context) => _AddStoryDialog(projects: _projects, type: type),
     );
 
-    if (result != null && _selectedStoreId != null) {
+    if (result != null && _selectedProjectId != null) {
       await _storyService.addStory(
-        storeId: _selectedStoreId!,
+        projectId: _selectedProjectId!,
         imageUrl: result['imageUrl'] ?? '',
         type: type,
         title: result['title'],
         description: result['description'],
-        promotionPrice: result['promotionPrice'],
-        productId: result['productId'],
+        userId: result['userId'],
       );
       _loadData();
     }
@@ -130,9 +127,9 @@ class _StoriesScreenState extends State<StoriesScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => _addStory('promotion'),
+                          onPressed: () => _addStory('Confession'),
                           icon: const Icon(Icons.local_offer),
-                          label: const Text('Promotion'),
+                          label: const Text('Confession'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
@@ -220,9 +217,9 @@ class _StoriesScreenState extends State<StoriesScreen> {
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
-                                            if (story['type'] == 'promotion' && story['promotionPrice'] != null)
+                                            if (story['type'] == 'confession' && story['confession'] != null)
                                               Text(
-                                                '${story['promotionPrice']} FCFA',
+                                                '${story['mots_clé']}',
                                                 style: const TextStyle(
                                                   color: Colors.orange,
                                                   fontWeight: FontWeight.bold,
@@ -265,7 +262,7 @@ class _AddStoryDialogState extends State<_AddStoryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.type == 'promotion' ? 'Nouvelle promotion' : 'Nouvelle annonce'),
+      title: Text(widget.type == 'confession' ? 'Nouvelle confession' : 'Nouvelle annonce'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -300,24 +297,24 @@ class _AddStoryDialogState extends State<_AddStoryDialog> {
               decoration: const InputDecoration(labelText: 'Description'),
               maxLines: 3,
             ),
-            if (widget.type == 'promotion') ...[
+            if (widget.type == 'confession') ...[
               const SizedBox(height: 10),
               TextField(
                 controller: _priceController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Prix promotionnel'),
+                decoration: const InputDecoration(labelText: 'Mots_clé'),
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                initialValue: _selectedProductId,
-                decoration: const InputDecoration(labelText: 'Produit'),
+                initialValue: _selectedProjectId,
+                decoration: const InputDecoration(labelText: 'Projet'),
                 items: widget.products.map<DropdownMenuItem<String>>((p) {
                   return DropdownMenuItem<String>(
-                    value: p['productId'] as String?,
-                    child: Text(p['productName'] ?? ''),
+                    value: p['projectId'] as String?,
+                    child: Text(p['projectName'] ?? ''),
                   );
                 }).toList(),
-                onChanged: (value) => setState(() => _selectedProductId = value),
+                onChanged: (value) => setState(() => _selectedProjectId = value),
               ),
             ],
           ],
@@ -337,7 +334,7 @@ class _AddStoryDialogState extends State<_AddStoryDialog> {
               'promotionPrice': _priceController.text.isNotEmpty
                   ? double.tryParse(_priceController.text)
                   : null,
-              'productId': _selectedProductId,
+              'projectId': _selectedProjectId,
             });
           },
           child: const Text('Ajouter'),

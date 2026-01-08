@@ -59,7 +59,7 @@ class NotificationService {
 
   Future<bool> markAsRead(String notificationId) async {
     try {
-      final index = _notifications.indexWhere((n) => n.id == notificationId);
+      final index = _notifications.indexWhere((n) => n.notificationId == notificationId);
       if (index == -1) return false;
 
       _notifications[index] = _notifications[index].copyWith(isRead: true);
@@ -88,7 +88,7 @@ class NotificationService {
 
   Future<void> createLikeNotification(String projectOwnerId, String likerName, String projectName, String projectId) async {
     final notification = AppNotification(
-      id: const Uuid().v4(),
+      notificationId: const Uuid().v4(),
       userId: projectOwnerId,
       title: 'Nouveau like',
       message: '$likerName a aimé votre projet "$projectName"',
@@ -101,7 +101,7 @@ class NotificationService {
 
   Future<void> createCommentNotification(String projectOwnerId, String commenterName, String projectName, String projectId) async {
     final notification = AppNotification(
-      id: const Uuid().v4(),
+      notificationId: const Uuid().v4(),
       userId: projectOwnerId,
       title: 'Nouveau commentaire',
       message: '$commenterName a commenté votre projet "$projectName"',
@@ -114,7 +114,7 @@ class NotificationService {
 
   Future<void> createEvaluationNotification(String studentId, String projectName, double grade, String projectId) async {
     final notification = AppNotification(
-      id: const Uuid().v4(),
+      notificationId: const Uuid().v4(),
       userId: studentId,
       title: 'Projet évalué',
       message: 'Votre projet "$projectName" a été évalué. Note: $grade/20',
@@ -127,7 +127,7 @@ class NotificationService {
 
   Future<void> createApprovalNotification(String userId, bool approved) async {
     final notification = AppNotification(
-      id: const Uuid().v4(),
+      notificationId: const Uuid().v4(),
       userId: userId,
       title: approved ? 'Compte approuvé' : 'Compte rejeté',
       message: approved
