@@ -3,8 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:campuswork/auth/auth_service.dart';
 import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/services/notification_services.dart';
+import 'package:campuswork/services/group_service.dart';
 import 'package:campuswork/model/user.dart';
 import 'package:campuswork/components/user_avatar.dart';
+import 'package:campuswork/screen/groups/create_group_button.dart';
+import 'package:campuswork/screen/groups/groups_list.dart';
+import 'package:campuswork/screen/surveys/create_survey_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -195,6 +199,130 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // Section Actions Administrateur
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Actions administrateur',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.2,
+                  children: [
+                    _buildActionCard(
+                      icon: Icons.people,
+                      title: 'Gestion utilisateurs',
+                      subtitle: 'Approuver/Rejeter',
+                      color: Colors.blue,
+                      onTap: () => _showUserManagement(),
+                    ),
+                    _buildActionCard(
+                      icon: Icons.folder,
+                      title: 'Tous les projets',
+                      subtitle: 'Consulter/Modérer',
+                      color: Colors.green,
+                      onTap: () => context.push('/projects'),
+                    ),
+                    _buildActionCard(
+                      icon: Icons.group,
+                      title: 'Gestion groupes',
+                      subtitle: 'Créer/Gérer',
+                      color: Colors.purple,
+                      onTap: () => _showGroupsManagement(),
+                    ),
+                    _buildActionCard(
+                      icon: Icons.analytics,
+                      title: 'Statistiques',
+                      subtitle: 'Rapports système',
+                      color: Colors.orange,
+                      onTap: () => _showStatistics(),
+                    ),
+                    _buildActionCard(
+                      icon: Icons.security,
+                      title: 'Similarité',
+                      subtitle: 'Détection plagiat',
+                      color: Colors.red,
+                      onTap: () => _showSimilarityCheck(),
+                    ),
+                    _buildActionCard(
+                      icon: Icons.poll,
+                      title: 'Sondages',
+                      subtitle: 'Créer/Gérer',
+                      color: Colors.teal,
+                      onTap: () => _showSurveyManagement(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Section Gestion des Groupes
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Gestion des groupes',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    CreateGroupIconButton(
+                      currentUser: _admin,
+                      onGroupCreated: () {
+                        // Actualiser les données si nécessaire
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.group,
+                        title: 'Groupes totaux',
+                        value: '${GroupService().getAllGroups().length}',
+                        color: Colors.purple,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.group_add,
+                        title: 'Groupes ouverts',
+                        value: '${GroupService().getOpenGroups().length}',
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: OutlinedButton.icon(
+                  onPressed: () => _showGroupsManagement(),
+                  icon: const Icon(Icons.manage_accounts),
+                  label: const Text('Gérer tous les groupes'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -256,7 +384,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        UserAvatar(name: user.fullName, size: 48),
+                        UserAvatar(
+                          userId: user.userId,
+                          name: user.fullName, 
+                          size: 48,
+                        ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -337,6 +469,185 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showGroupsManagement() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Gestion des groupes',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                CreateGroupIconButton(
+                  currentUser: _admin,
+                  onGroupCreated: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+            const Divider(),
+            Expanded(
+              child: GroupsList(
+                currentUser: _admin,
+                showOnlyUserGroups: false,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showUserManagement() {
+    // Afficher la gestion des utilisateurs (déjà implémentée dans les demandes d'inscription)
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Voir les demandes d\'inscription ci-dessous')),
+    );
+  }
+
+  void _showStatistics() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Statistiques système'),
+        content: FutureBuilder<Map<String, int>>(
+          future: _getSystemStats(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            
+            final stats = snapshot.data ?? {};
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildStatRow('Utilisateurs totaux', '${stats['users'] ?? 0}'),
+                _buildStatRow('Projets totaux', '${ProjectService().getAllProjects().length}'),
+                _buildStatRow('Groupes totaux', '${GroupService().getAllGroups().length}'),
+                _buildStatRow('Demandes en attente', '${_pendingUsers.length}'),
+              ],
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<Map<String, int>> _getSystemStats() async {
+    try {
+      final students = await AuthService().getAllStudents();
+      final lecturers = await AuthService().getAllLecturers();
+      final totalUsers = students.length + lecturers.length + 1; // +1 for admin
+      
+      return {
+        'users': totalUsers,
+      };
+    } catch (e) {
+      debugPrint('Error getting system stats: $e');
+      return {'users': 0};
+    }
+  }
+
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  void _showSimilarityCheck() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Outil de détection de similarité - À implémenter')),
+    );
+  }
+
+  void _showSurveyManagement() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateSurveyPage(currentUser: _admin),
       ),
     );
   }

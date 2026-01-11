@@ -1,6 +1,6 @@
 
 import 'package:flutter/foundation.dart';
-import 'package:store_buy/database/database_helper.dart';
+import 'package:campuswork/database/database_helper.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 

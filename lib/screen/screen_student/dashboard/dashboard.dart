@@ -3,9 +3,14 @@ import 'package:go_router/go_router.dart';
 import 'package:campuswork/auth/auth_service.dart';
 import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/services/notification_services.dart';
+import 'package:campuswork/services/group_service.dart';
 import 'package:campuswork/model/student.dart';
 import 'package:campuswork/components/components.dart';
-import 'package:campuswork/screen/screen_student/projects/project_card.dart';
+import 'package:campuswork/screen/groups/groups_list.dart';
+import 'package:campuswork/screen/groups/create_group_button.dart';
+import 'package:campuswork/screen/collaboration/collaboration_requests_page.dart';
+import 'package:campuswork/theme/theme.dart';
+import 'dart:math' as math;
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -14,10 +19,17 @@ class StudentDashboard extends StatefulWidget {
   State<StudentDashboard> createState() => _StudentDashboardState();
 }
 
-class _StudentDashboardState extends State<StudentDashboard> with SingleTickerProviderStateMixin {
+class _StudentDashboardState extends State<StudentDashboard> 
+    with TickerProviderStateMixin {
   late Student _student;
   late AnimationController _animController;
+  late AnimationController _headerAnimController;
+  late AnimationController _cardAnimController;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _headerAnimation;
+  late Animation<double> _cardAnimation;
+  late Animation<Offset> _slideAnimation;
+  
   int _unreadNotifications = 0;
   int _selectedTabIndex = 0;
   bool _isLoading = true;
@@ -26,135 +38,106 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
   void initState() {
     super.initState();
     _student = AuthService().currentUser as Student;
+    
+    // Initialize animation controllers
     _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    
+    _headerAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+    
+    _cardAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+
+    // Initialize animations
     _fadeAnimation = CurvedAnimation(
       parent: _animController,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOut,
     );
-    _animController.forward();
+    
+    _headerAnimation = CurvedAnimation(
+      parent: _headerAnimController,
+      curve: Curves.easeOutCubic,
+    );
+    
+    _cardAnimation = CurvedAnimation(
+      parent: _cardAnimController,
+      curve: Curves.elasticOut,
+    );
+    
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    ));
+
     _loadData();
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    _headerAnimController.dispose();
+    _cardAnimController.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Start header animation
+    _headerAnimController.forward();
+    
+    await Future.delayed(const Duration(milliseconds: 300));
     final count = NotificationService().getUnreadCountByUser(_student.userId);
+    
     setState(() {
       _unreadNotifications = count;
       _isLoading = false;
     });
-  }
-
-  void _showQuickActions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Actions rapides',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 24),
-            GridView.count(
-              shrinkWrap: true,
-              crossAxisCount: 3,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              children: [
-                _QuickActionTile(
-                  icon: Icons.add_circle_outline,
-                  label: 'Nouveau\nProjet',
-                  color: Colors.blue,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/create-project');
-                  },
-                ),
-                _QuickActionTile(
-                  icon: Icons.folder_open,
-                  label: 'Mes\nProjets',
-                  color: Colors.purple,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/my-projects');
-                  },
-                ),
-                _QuickActionTile(
-                  icon: Icons.explore,
-                  label: 'Explorer',
-                  color: Colors.orange,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/projects');
-                  },
-                ),
-                _QuickActionTile(
-                  icon: Icons.people_outline,
-                  label: 'Équipe',
-                  color: Colors.green,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/team');
-                  },
-                ),
-                _QuickActionTile(
-                  icon: Icons.school,
-                  label: 'Cours',
-                  color: Colors.indigo,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/courses');
-                  },
-                ),
-                _QuickActionTile(
-                  icon: Icons.settings,
-                  label: 'Paramètres',
-                  color: Colors.grey,
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/settings');
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
+    
+    // Start main content animations
+    _animController.forward();
+    await Future.delayed(const Duration(milliseconds: 200));
+    _cardAnimController.forward();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: LoadingState(message: 'Chargement de votre dashboard...'),
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+                SizedBox(height: 24),
+                Text(
+                  'Chargement de votre dashboard...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -162,353 +145,573 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
     final recentProjects = ProjectService().getAllProjects().take(5).toList();
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // AppBar dynamique
-          SliverAppBar(
-            expandedHeight: 200,
-            floating: false,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                      Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-                    ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+        ),
+        child: CustomScrollView(
+          slivers: [
+            // Modern Header
+            _buildModernHeader(),
+            
+            // Main Content
+            SliverToBoxAdapter(
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
                   ),
                 ),
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: Row(
-                            children: [
-                              UserAvatar(
-                                name: _student.fullName,
-                                size: 56,
-                                showBadge: true,
-                                badgeColor: Colors.green,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Bonjour 👋',
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.9),
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    Text(
-                                      _student.firstName,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Spacer(),
-                        StatusBadge(
-                          label: '${_student.level} • ${_student.filiere}',
-                          color: Colors.white,
-                        ),
+                        const SizedBox(height: 32),
+                        
+                        // Quick Stats Cards
+                        _buildQuickStats(myProjects),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Quick Actions
+                        _buildQuickActions(),
+                        
+                        const SizedBox(height: 32),
+                        
+                        // Content Tabs
+                        _buildContentTabs(),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Tab Content
+                        _buildTabContent(myProjects, recentProjects),
+                        
+                        const SizedBox(height: 100), // Space for FAB
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            actions: [
-              NotificationBell(
-                notificationCount: _unreadNotifications,
-                onPressed: () => context.push('/notifications'),
+          ],
+        ),
+      ),
+      floatingActionButton: ScaleTransition(
+        scale: _cardAnimation,
+        child: FloatingActionButton.extended(
+          onPressed: () async {
+            final result = await context.push('/create-project');
+            if (result == true) {
+              setState(() {}); // Rafraîchir le dashboard
+            }
+          },
+          backgroundColor: const Color(0xFF4A90E2),
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: const Text('Nouveau projet'),
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernHeader() {
+    return SliverAppBar(
+      expandedHeight: 280,
+      floating: false,
+      pinned: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      flexibleSpace: FlexibleSpaceBar(
+        background: FadeTransition(
+          opacity: _headerAnimation,
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Row with Avatar and Notifications
+                    Row(
+                      children: [
+                        // Animated Avatar
+                        ScaleTransition(
+                          scale: _headerAnimation,
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: const LinearGradient(
+                                colors: [Colors.white, Color(0xFFF0F4F8)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              size: 32,
+                              color: Color(0xFF4A90E2),
+                            ),
+                          ),
+                        ),
+                        
+                        const Spacer(),
+                        
+                        // Notification Bell
+                        SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(1, 0),
+                            end: Offset.zero,
+                          ).animate(_headerAnimation),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: IconButton(
+                              onPressed: () => context.push('/notifications'),
+                              icon: Stack(
+                                children: [
+                                  const Icon(
+                                    Icons.notifications_outlined,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                  if (_unreadNotifications > 0)
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          '$_unreadNotifications',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 32),
+                    
+                    // Welcome Text
+                    SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(-0.5, 0),
+                        end: Offset.zero,
+                      ).animate(_headerAnimation),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bonjour 👋',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _student.firstName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -1,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${_student.level} • ${_student.filiere}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              UserAvatarMenu(
-                name: _student.fullName,
-                email: _student.email,
-                menuItems: [
-                  const PopupMenuItem(
-                    value: 'profile',
-                    child: Row(
-                      children: [
-                        Icon(Icons.person),
-                        SizedBox(width: 12),
-                        Text('Mon profil'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'settings',
-                    child: Row(
-                      children: [
-                        Icon(Icons.settings),
-                        SizedBox(width: 12),
-                        Text('Paramètres'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout, color: Colors.red),
-                        SizedBox(width: 12),
-                        Text('Déconnexion', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.white),
+          onSelected: (value) async {
+            switch (value) {
+              case 'profile':
+                context.push('/profile');
+                break;
+              case 'settings':
+                context.push('/settings');
+                break;
+              case 'logout':
+                await AuthService().logout();
+                if (mounted) context.go('/');
+                break;
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'profile',
+              child: Row(
+                children: [
+                  Icon(Icons.person),
+                  SizedBox(width: 12),
+                  Text('Mon profil'),
                 ],
-                onMenuItemSelected: (value) async {
-                  switch (value) {
-                    case 'profile':
-                      context.push('/profile');
-                      break;
-                    case 'settings':
-                      context.push('/settings');
-                      break;
-                    case 'logout':
-                      await AuthService().logout();
-                      if (mounted) context.go('/');
-                      break;
-                  }
-                },
               ),
-              const SizedBox(width: 8),
+            ),
+            const PopupMenuItem(
+              value: 'settings',
+              child: Row(
+                children: [
+                  Icon(Icons.settings),
+                  SizedBox(width: 12),
+                  Text('Paramètres'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'logout',
+              child: Row(
+                children: [
+                  Icon(Icons.logout, color: Colors.red),
+                  SizedBox(width: 12),
+                  Text('Déconnexion', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickStats(List<dynamic> myProjects) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 1.3,
+        children: [
+          _ModernStatCard(
+            icon: Icons.folder_open,
+            title: 'Projets',
+            value: '${myProjects.length}',
+            color: const Color(0xFF4A90E2),
+            animation: _cardAnimation,
+            delay: 0,
+          ),
+          _ModernStatCard(
+            icon: Icons.grade,
+            title: 'Moyenne',
+            value: _calculateAverage(myProjects),
+            color: const Color(0xFFF59E0B),
+            animation: _cardAnimation,
+            delay: 100,
+          ),
+          _ModernStatCard(
+            icon: Icons.check_circle_outline,
+            title: 'Terminés',
+            value: '${myProjects.where((p) => p.status == 'completed').length}',
+            color: const Color(0xFF10B981),
+            animation: _cardAnimation,
+            delay: 200,
+          ),
+          _ModernStatCard(
+            icon: Icons.timer_outlined,
+            title: 'En cours',
+            value: '${myProjects.where((p) => p.status == 'in_progress').length}',
+            color: const Color(0xFFEF4444),
+            animation: _cardAnimation,
+            delay: 300,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Actions rapides',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1A1D29),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Première ligne d'actions
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: _ModernActionButton(
+                  label: 'Nouveau projet',
+                  icon: Icons.add_circle_outline,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                  ),
+                  animation: _cardAnimation,
+                  onTap: () async {
+                    final result = await context.push('/create-project');
+                    if (result == true) {
+                      setState(() {}); // Rafraîchir le dashboard
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModernActionButton(
+                  label: 'Explorer',
+                  icon: Icons.explore_outlined,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  ),
+                  animation: _cardAnimation,
+                  onTap: () => context.push('/projects'),
+                ),
+              ),
             ],
           ),
-
-          // Contenu principal
-          SliverToBoxAdapter(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-
-                  // Statistiques en grille
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.5,
-                      children: [
-                        _AnimatedStatCard(
-                          icon: Icons.folder_open,
-                          title: 'Projets',
-                          value: '${myProjects.length}',
-                          color: Colors.blue,
-                          delay: 0,
-                        ),
-                        _AnimatedStatCard(
-                          icon: Icons.grade,
-                          title: 'Moyenne',
-                          value: _calculateAverage(myProjects),
-                          color: Colors.amber,
-                          delay: 100,
-                        ),
-                        _AnimatedStatCard(
-                          icon: Icons.check_circle_outline,
-                          title: 'Terminés',
-                          value: '${myProjects.where((p) => p.status == 'completed').length}',
-                          color: Colors.green,
-                          delay: 200,
-                        ),
-                        _AnimatedStatCard(
-                          icon: Icons.timer_outlined,
-                          title: 'En cours',
-                          value: '${myProjects.where((p) => p.status == 'in_progress').length}',
-                          color: Colors.orange,
-                          delay: 300,
-                        ),
-                      ],
-                    ),
+          const SizedBox(height: 12),
+          // Deuxième ligne d'actions
+          Row(
+            children: [
+              Expanded(
+                child: _ModernActionButton(
+                  label: 'Rejoindre groupe',
+                  icon: Icons.group_add,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Actions rapides
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: _ActionButton(
-                            label: 'Nouveau projet',
-                            icon: Icons.add_circle,
-                            gradient: LinearGradient(
-                              colors: [Colors.blue, Colors.blue.shade700],
-                            ),
-                            onTap: () => context.push('/create-project'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _ActionButton(
-                            label: 'Plus',
-                            icon: Icons.apps,
-                            gradient: LinearGradient(
-                              colors: [Colors.grey.shade700, Colors.grey.shade900],
-                            ),
-                            onTap: _showQuickActions,
-                          ),
-                        ),
-                      ],
-                    ),
+                  animation: _cardAnimation,
+                  onTap: () => _showAvailableGroups(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModernActionButton(
+                  label: 'Mes groupes',
+                  icon: Icons.group,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
                   ),
-
-                  const SizedBox(height: 32),
-
-                  // Tabs pour filtrer le contenu
-                  _CustomTabBar(
-                    selectedIndex: _selectedTabIndex,
-                    onChanged: (index) => setState(() => _selectedTabIndex = index),
+                  animation: _cardAnimation,
+                  onTap: () => _showMyGroups(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModernActionButton(
+                  label: 'Collaborer',
+                  icon: Icons.handshake,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
                   ),
+                  animation: _cardAnimation,
+                  onTap: () => _showCollaborationRequests(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-                  const SizedBox(height: 16),
+  Widget _buildContentTabs() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          _ModernTab(
+            label: 'Mes projets',
+            isSelected: _selectedTabIndex == 0,
+            onTap: () => setState(() => _selectedTabIndex = 0),
+          ),
+          const SizedBox(width: 12),
+          _ModernTab(
+            label: 'Récents',
+            isSelected: _selectedTabIndex == 1,
+            onTap: () => setState(() => _selectedTabIndex = 1),
+          ),
+          const SizedBox(width: 12),
+          _ModernTab(
+            label: 'Favoris',
+            isSelected: _selectedTabIndex == 2,
+            onTap: () => setState(() => _selectedTabIndex = 2),
+          ),
+        ],
+      ),
+    );
+  }
 
-                  // Contenu selon l'onglet sélectionné
-                  if (_selectedTabIndex == 0) ...[
-                    _buildMyProjectsSection(myProjects),
-                  ] else if (_selectedTabIndex == 1) ...[
-                    _buildRecentProjectsSection(recentProjects),
-                  ] else ...[
-                    _buildFavoritesSection(),
-                  ],
+  Widget _buildTabContent(List<dynamic> myProjects, List<dynamic> recentProjects) {
+    switch (_selectedTabIndex) {
+      case 0:
+        return _buildProjectsList(myProjects, 'Mes projets', '/my-projects');
+      case 1:
+        return _buildProjectsList(recentProjects, 'Projets récents', '/projects');
+      case 2:
+        return _buildEmptyState();
+      default:
+        return _buildProjectsList(myProjects, 'Mes projets', '/my-projects');
+    }
+  }
 
-                  const SizedBox(height: 32),
+  Widget _buildProjectsList(List<dynamic> projects, String title, String viewAllRoute) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (projects.isEmpty)
+            _buildEmptyState()
+          else
+            ...projects.take(3).map((project) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: ProjectCard(
+                title: project.projectName,
+                description: project.description,
+                imageUrl: project.imageUrl,
+                tags: [
+                  if (project.category != null && project.category!.isNotEmpty) project.category!,
+                  project.state,
+                  if (project.grade != null && project.grade!.isNotEmpty) 'Note: ${project.grade}',
                 ],
+                onTap: () {
+                  // Navigate to project details
+                },
+              ),
+            )),
+          
+          if (projects.length > 3)
+            Center(
+              child: TextButton.icon(
+                onPressed: () => context.push(viewAllRoute),
+                icon: const Icon(Icons.arrow_forward),
+                label: const Text('Voir tout'),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF4A90E2),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.all(48),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4A90E2).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.folder_open,
+              size: 40,
+              color: Color(0xFF4A90E2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Aucun projet',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1A1D29),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Créez votre premier projet pour commencer',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF6B7280),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () async {
+              final result = await context.push('/create-project');
+              if (result == true) {
+                setState(() {}); // Rafraîchir le dashboard
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Créer un projet'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4A90E2),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/create-project'),
-        icon: const Icon(Icons.add),
-        label: const Text('Créer'),
-      ),
-    );
-  }
-
-  Widget _buildMyProjectsSection(List<dynamic> myProjects) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mes projets',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '${myProjects.length} projet${myProjects.length > 1 ? 's' : ''}',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                  ),
-                ],
-              ),
-              if (myProjects.length > 3)
-                TextButton.icon(
-                  onPressed: () => context.push('/my-projects'),
-                  icon: const Icon(Icons.arrow_forward, size: 16),
-                  label: const Text('Voir tout'),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (myProjects.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: EmptyState(
-              icon: Icons.folder_open,
-              title: 'Aucun projet',
-              message: 'Créez votre premier projet pour commencer',
-              actionLabel: 'Créer un projet',
-              onAction: () => context.push('/create-project'),
-            ),
-          )
-        else
-          ...myProjects.take(3).map((project) =>
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: ProjectCard(project: project),
-              ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildRecentProjectsSection(List<dynamic> recentProjects) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Projets récents',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'Découvrez les derniers projets',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...recentProjects.map((project) =>
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: ProjectCard(project: project),
-            ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFavoritesSection() {
-    return const Padding(
-      padding: EdgeInsets.all(32),
-      child: EmptyState(
-        icon: Icons.favorite_border,
-        title: 'Aucun favori',
-        message: 'Ajoutez des projets à vos favoris pour les retrouver ici',
       ),
     );
   }
@@ -520,44 +723,122 @@ class _StudentDashboardState extends State<StudentDashboard> with SingleTickerPr
     final average = sum / gradedProjects.length;
     return average.toStringAsFixed(1);
   }
+
+  void _showAvailableGroups() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              'Groupes disponibles',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const Divider(),
+            Expanded(
+              child: GroupsList(
+                currentUser: _student,
+                showOnlyUserGroups: false,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMyGroups() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.9,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              'Mes groupes',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const Divider(),
+            Expanded(
+              child: GroupsList(
+                currentUser: _student,
+                showOnlyUserGroups: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCollaborationRequests() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CollaborationRequestsPage(currentUser: _student),
+      ),
+    );
+  }
 }
 
-// Composants personnalisés
+// Modern Components
 
-class _AnimatedStatCard extends StatefulWidget {
+class _ModernStatCard extends StatefulWidget {
   final IconData icon;
   final String title;
   final String value;
   final Color color;
+  final Animation<double> animation;
   final int delay;
 
-  const _AnimatedStatCard({
+  const _ModernStatCard({
     required this.icon,
     required this.title,
     required this.value,
     required this.color,
+    required this.animation,
     required this.delay,
   });
 
   @override
-  State<_AnimatedStatCard> createState() => _AnimatedStatCardState();
+  State<_ModernStatCard> createState() => _ModernStatCardState();
 }
 
-class _AnimatedStatCardState extends State<_AnimatedStatCard> with SingleTickerProviderStateMixin {
+class _ModernStatCardState extends State<_ModernStatCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
       vsync: this,
-      duration: const Duration(milliseconds: 400),
     );
-    _scaleAnimation = CurvedAnimation(
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.elasticOut,
-    );
+    ));
+
+    _rotationAnimation = Tween<double>(
+      begin: -0.1,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
     Future.delayed(Duration(milliseconds: widget.delay), () {
       if (mounted) _controller.forward();
     });
@@ -573,143 +854,149 @@ class _AnimatedStatCardState extends State<_AnimatedStatCard> with SingleTickerP
   Widget build(BuildContext context) {
     return ScaleTransition(
       scale: _scaleAnimation,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: widget.color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: widget.color.withOpacity(0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(widget.icon, color: widget.color, size: 32),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.value,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: widget.color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+      child: RotationTransition(
+        turns: _rotationAnimation,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                widget.color.withOpacity(0.1),
+                widget.color.withOpacity(0.05),
               ],
             ),
-          ],
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: widget.color.withOpacity(0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  widget.icon,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.value,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: widget.color,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _ModernActionButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final Gradient gradient;
+  final Animation<double> animation;
   final VoidCallback onTap;
 
-  const _ActionButton({
+  const _ModernActionButton({
     required this.label,
     required this.icon,
     required this.gradient,
+    required this.animation,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          gradient: gradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: gradient.colors.first.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
+    return ScaleTransition(
+      scale: animation,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: gradient.colors.first.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
               ),
-            ),
-          ],
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _CustomTabBar extends StatelessWidget {
-  final int selectedIndex;
-  final Function(int) onChanged;
-
-  const _CustomTabBar({
-    required this.selectedIndex,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          _TabItem(
-            label: 'Mes projets',
-            isSelected: selectedIndex == 0,
-            onTap: () => onChanged(0),
-          ),
-          const SizedBox(width: 12),
-          _TabItem(
-            label: 'Récents',
-            isSelected: selectedIndex == 1,
-            onTap: () => onChanged(1),
-          ),
-          const SizedBox(width: 12),
-          _TabItem(
-            label: 'Favoris',
-            isSelected: selectedIndex == 2,
-            onTap: () => onChanged(2),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TabItem extends StatelessWidget {
+class _ModernTab extends StatelessWidget {
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _TabItem({
+  const _ModernTab({
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -719,65 +1006,41 @@ class _TabItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        duration: AppTheme.normalAnimation,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey[200],
-          borderRadius: BorderRadius.circular(20),
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFF4A90E2), Color(0xFF7B68EE)],
+                )
+              : null,
+          color: isSelected ? null : const Color(0xFFF5F7FA),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected
+                ? Colors.transparent
+                : const Color(0xFFE8EDF2),
+            width: 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF4A90E2).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[700],
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            color: isSelected ? Colors.white : const Color(0xFF6B7280),
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: 14,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionTile({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
         ),
       ),
     );

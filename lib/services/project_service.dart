@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
 import 'package:campuswork/model/project.dart';
 
 class ProjectService {
@@ -115,20 +116,20 @@ class ProjectService {
   List<Project> getAllProjects() => List.unmodifiable(_projects);
 
   List<Project> getProjectsByStudent(String studentId) =>
-      _projects.where((p) => p.studentId == studentId || p.collaborators.contains(studentId)).toList();
+      _projects.where((p) => p.userId == studentId || p.collaborators.contains(studentId)).toList();
 
   List<Project> getProjectsByCourse(String courseName) =>
       _projects.where((p) => p.courseName == courseName).toList();
 
   List<Project> searchProjects(String query, {
     String? courseName,
-    ProjectState? state,
+    String? state,
     ProjectStatus? status,
     String? category, 
   }) {
     var filtered = _projects.where((p) => p.status == ProjectStatus.public).toList();
 
-    if (query != null && query.isNotEmpty) {
+    if (query.isNotEmpty) {
       filtered = filtered.where((p) =>
       p.projectName.toLowerCase().contains(query.toLowerCase()) ||
           p.description.toLowerCase().contains(query.toLowerCase())
@@ -152,18 +153,28 @@ class ProjectService {
 
   Future<bool> createProject(Project project) async {
     try {
+      debugPrint('🔵 Creating project: ${project.projectName}');
+      debugPrint('   - Project ID: ${project.projectId}');
+      debugPrint('   - User ID: ${project.userId}');
+      debugPrint('   - Course: ${project.courseName}');
+      
       _projects.add(project);
       await _saveProjects();
+      
+      debugPrint('✅ Project created successfully');
+      debugPrint('   - Total projects now: ${_projects.length}');
+      
       return true;
     } catch (e) {
-      debugPrint('Failed to create project: $e');
+      debugPrint('❌ Failed to create project: $e');
+      debugPrint('❌ Stack trace: ${StackTrace.current}');
       return false;
     }
   }
 
   Future<bool> updateProject(Project project) async {
     try {
-      final index = _projects.indexWhere((p) => p.id == project.id);
+      final index = _projects.indexWhere((p) => p.projectId == project.projectId);
       if (index == -1) return false;
 
       _projects[index] = project;
@@ -177,7 +188,7 @@ class ProjectService {
 
   Future<bool> deleteProject(String projectId) async {
     try {
-      _projects.removeWhere((p) => p.id == projectId);
+      _projects.removeWhere((p) => p.projectId == projectId);
       await _saveProjects();
       return true;
     } catch (e) {
@@ -188,23 +199,23 @@ class ProjectService {
 
   Project? getProjectById(String projectId) {
     try {
-      return _projects.firstWhere((p) => p.id == projectId);
+      return _projects.firstWhere((p) => p.projectId == projectId);
     } catch (e) {
       return null;
     }
   }
 
-  Future<bool> evaluateProject(String projectId, double grade, String? comment) async {
+  Future<bool> evaluateProject(String projectId, String grade, String? comment) async {
     try {
-      final index = _projects.indexWhere((p) => p.id == projectId);
+      final index = _projects.indexWhere((p) => p.projectId == projectId);
       if (index == -1) return false;
 
       final project = _projects[index];
       _projects[index] = project.copyWith(
         grade: grade,
         lecturerComment: comment,
-        state: ProjectState.note,
-        updatedAt: DateTime.now(),
+        state: 'note',
+        updatedAt: DateTime.now().toIso8601String(),
       );
 
       await _saveProjects();
@@ -216,44 +227,44 @@ class ProjectService {
   }
 
   Future<void> incrementLikes(String projectId) async {
-    final index = _projects.indexWhere((p) => p.id == projectId);
+    final index = _projects.indexWhere((p) => p.projectId == projectId);
     if (index != -1) {
       _projects[index] = _projects[index].copyWith(
         likesCount: _projects[index].likesCount + 1,
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime.now().toIso8601String(),
       );
       await _saveProjects();
     }
   }
 
   Future<void> decrementLikes(String projectId) async {
-    final index = _projects.indexWhere((p) => p.id == projectId);
+    final index = _projects.indexWhere((p) => p.projectId == projectId);
     if (index != -1) {
       _projects[index] = _projects[index].copyWith(
         likesCount: (_projects[index].likesCount - 1).clamp(0, double.infinity).toInt(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime.now().toIso8601String(),
       );
       await _saveProjects();
     }
   }
 
   Future<void> incrementComments(String projectId) async {
-    final index = _projects.indexWhere((p) => p.id == projectId);
+    final index = _projects.indexWhere((p) => p.projectId == projectId);
     if (index != -1) {
       _projects[index] = _projects[index].copyWith(
         commentsCount: _projects[index].commentsCount + 1,
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime.now().toIso8601String(),
       );
       await _saveProjects();
     }
   }
 
   Future<void> decrementComments(String projectId) async {
-    final index = _projects.indexWhere((p) => p.id == projectId);
+    final index = _projects.indexWhere((p) => p.projectId == projectId);
     if (index != -1) {
       _projects[index] = _projects[index].copyWith(
         commentsCount: (_projects[index].commentsCount - 1).clamp(0, double.infinity).toInt(),
-        updatedAt: DateTime.now(),
+        updatedAt: DateTime.now().toIso8601String(),
       );
       await _saveProjects();
     }
@@ -263,5 +274,20 @@ class ProjectService {
     final courses = _projects.map((p) => p.courseName).toSet().toList();
     courses.sort();
     return courses;
+  }
+
+  // Add missing methods needed by various screens
+  List<Project> getProjectsByUserId(String userId) {
+    return getProjectsByStudent(userId);
+  }
+
+  Future<List<Project>> getProjectByUserId(String userId) async {
+    return getProjectsByStudent(userId);
+  }
+
+  Future<List<Project>> getHistoryByProject(String projectId) async {
+    // Return project history - for now just return the project itself
+    final project = getProjectById(projectId);
+    return project != null ? [project] : [];
   }
 }

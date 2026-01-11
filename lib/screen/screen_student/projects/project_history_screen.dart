@@ -37,7 +37,7 @@ class _ProjectHistoryScreenState extends State<ProjectHistoryScreen> {
         authProvider.currentUser!.userId,
       );
       if (projects.isNotEmpty) {
-        _selectedProjectId = projects.first['projectId'];
+        _selectedProjectId = projects.first.projectId;
       }
     }
 

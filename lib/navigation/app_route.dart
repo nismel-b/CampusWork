@@ -4,17 +4,37 @@ import 'package:campuswork/model/user.dart';
 import 'package:campuswork/auth/login_page.dart';
 import 'package:campuswork/auth/register_page.dart';
 import 'package:campuswork/screen/screen_student/dashboard/dashboard.dart';
-import 'package:campuswork/screen/screen_student/projects/create-project.dart';
-import 'package:campuswork/screen/screen_student/dashboard/my_project.dart';
+import 'package:campuswork/screen/screen_student/projects/projects_list_page.dart';
+import 'package:campuswork/screen/screen_student/projects/create_project.dart';
+import 'package:campuswork/screen/screen_student/profile/student_profile_page.dart';
+import 'package:campuswork/screen/screen_student/team/team_page.dart';
+import 'package:campuswork/screen/screen_student/courses/courses_page.dart';
 import 'package:campuswork/screen/screen_lecturer/dashboard/dashboard.dart';
-import 'package:campuswork/screen/screen_admin/dashboard/dashboard.dart';
-import 'package:campuswork/screen/screen_student/projects/project-grid.dart';
-import 'package:campuswork/screen/screen_student/projects/project_details.dart';
+import 'package:campuswork/screen/screen_admin/dashboard/admin_dashboard.dart';
+import 'package:campuswork/screen/profile/profile_settings.dart';
+import 'package:campuswork/screen/surveys/create_survey_page.dart';
+import 'package:campuswork/screen/collaboration/collaboration_requests_page.dart';
 import 'package:campuswork/screen/common_screen/notifications_pages.dart';
+import 'package:campuswork/screen/common_screen/feed_page.dart';
+import 'package:campuswork/screen/common_screen/create_post_page.dart';
+import 'package:campuswork/splash_screen/splash_screen.dart';
+import 'package:campuswork/onboarding_screen.dart';
+import 'package:campuswork/utils/page_transitions.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/splash',
   redirect: (context, state) {
+    // Allow splash screen to show first
+    if (state.uri.path == '/splash') {
+      return null;
+    }
+
+    // Allow onboarding screen
+    if (state.uri.path == '/onboarding') {
+      return null;
+    }
+
     final isLoggedIn = AuthService().isLoggedIn;
     final currentUser = AuthService().currentUser;
 
@@ -37,46 +57,147 @@ final router = GoRouter(
   },
   routes: [
     GoRoute(
+      path: '/splash',
+      pageBuilder: (context, state) => PageTransitions.rotationScaleTransition(
+        const SplashScreen(),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/onboarding',
+      pageBuilder: (context, state) => PageTransitions.fadeTransition(
+        const OnboardingScreen(),
+        state,
+      ),
+    ),
+    GoRoute(
       path: '/',
-      builder: (context, state) => const LoginPage(),
+      pageBuilder: (context, state) => PageTransitions.fadeTransition(
+        const LoginPage(),
+        state,
+      ),
     ),
     GoRoute(
       path: '/register',
-      builder: (context, state) => const RegisterPage(),
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        const RegisterPage(),
+        state,
+      ),
     ),
     GoRoute(
       path: '/student-dashboard',
-      builder: (context, state) => const StudentDashboard(),
+      pageBuilder: (context, state) => PageTransitions.scaleTransition(
+        const StudentDashboard(),
+        state,
+      ),
     ),
     GoRoute(
       path: '/lecturer-dashboard',
-      builder: (context, state) => const LecturerDashboard(),
+      pageBuilder: (context, state) => PageTransitions.scaleTransition(
+        const LecturerDashboard(),
+        state,
+      ),
     ),
     GoRoute(
       path: '/admin-dashboard',
-      builder: (context, state) => const AdminDashboard(),
+      pageBuilder: (context, state) => PageTransitions.scaleTransition(
+        AdminDashboard(currentUser: AuthService().currentUser!),
+        state,
+      ),
     ),
     GoRoute(
       path: '/projects',
-      builder: (context, state) => const ProjectsListPage(),
-    ),
-    GoRoute(
-      path: '/project/:id',
-      builder: (context, state) => ProjectDetailsPage(
-        projectId: state.pathParameters['id']!,
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        ProjectsListPage(currentUser: AuthService().currentUser!),
+        state,
       ),
     ),
     GoRoute(
       path: '/create-project',
-      builder: (context, state) => const CreateProjectPage(),
+      pageBuilder: (context, state) => PageTransitions.slideUpTransition(
+        const CreateProjectPage(),
+        state,
+      ),
     ),
     GoRoute(
       path: '/my-projects',
-      builder: (context, state) => const MyProjectsPage(),
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        ProjectsListPage(currentUser: AuthService().currentUser!),
+        state,
+      ),
     ),
     GoRoute(
       path: '/notifications',
-      builder: (context, state) => const NotificationsPage(),
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        const NotificationsPage(),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/profile',
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        StudentProfilePage(currentUser: AuthService().currentUser!),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/settings',
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        ProfileSettingsPage(currentUser: AuthService().currentUser!),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/profile-settings',
+      pageBuilder: (context, state) {
+        final user = state.extra as User?;
+        return PageTransitions.slideTransition(
+          ProfileSettingsPage(currentUser: user ?? AuthService().currentUser!),
+          state,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/team',
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        TeamPage(currentUser: AuthService().currentUser!),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/courses',
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        CoursesPage(currentUser: AuthService().currentUser!),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/feed',
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        const FeedPage(),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/create-post',
+      pageBuilder: (context, state) => PageTransitions.slideUpTransition(
+        const CreatePostPage(),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/create-survey',
+      pageBuilder: (context, state) => PageTransitions.slideUpTransition(
+        CreateSurveyPage(currentUser: AuthService().currentUser!),
+        state,
+      ),
+    ),
+    GoRoute(
+      path: '/collaboration-requests',
+      pageBuilder: (context, state) => PageTransitions.slideTransition(
+        CollaborationRequestsPage(currentUser: AuthService().currentUser!),
+        state,
+      ),
     ),
   ],
 );

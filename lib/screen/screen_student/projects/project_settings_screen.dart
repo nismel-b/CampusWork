@@ -1,122 +1,105 @@
 import 'package:flutter/material.dart';
-import 'package:store_buy/service/theme_service.dart';
-import 'package:store_buy/service/store_service.dart';
-import 'package:store_buy/providers/auth_provider.dart';
-import 'package:store_buy/constants/app_colors.dart';
+import 'package:campuswork/services/project_service.dart';
+import 'package:campuswork/providers/auth_provider.dart';
+import 'package:campuswork/model/project.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
-class StoreSettingsScreen extends StatefulWidget {
-  final String? storeId;
-  const StoreSettingsScreen({super.key, this.storeId});
+class ProjectSettingsScreen extends StatefulWidget {
+  final String? projectId;
+  const ProjectSettingsScreen({super.key, this.projectId});
 
   @override
-  State<StoreSettingsScreen> createState() => _StoreSettingsScreenState();
+  State<ProjectSettingsScreen> createState() => _ProjectSettingsScreenState();
 }
 
-class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
-  final ThemeService _themeService = ThemeService();
-  final StoreService _storeService = StoreService();
-  final ImagePicker _picker = ImagePicker();
+class _ProjectSettingsScreenState extends State<ProjectSettingsScreen> {
+  final ProjectService _projectService = ProjectService();
+  final _formKey = GlobalKey<FormState>();
   
-  String? _selectedStoreId;
-  String? _primaryColor;
-  String? _secondaryColor;
-  String? _fontFamily;
-  String? _logoPath;
-  String? _bannerPath;
+  final _projectNameController = TextEditingController();
+  final _courseNameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _resourcesController = TextEditingController();
+  
+  Project? _project;
   bool _isLoading = true;
-
-  final List<String> _fonts = [
-    'Roboto',
-    'Open Sans',
-    'Lato',
-    'Montserrat',
-    'Poppins',
-    'Raleway',
-  ];
+  bool _isPublic = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadProject();
   }
 
-  Future<void> _loadData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (widget.storeId != null) {
-      _selectedStoreId = widget.storeId;
-    } else if (authProvider.currentUser != null) {
-      final stores = await _storeService.getStoresByUserId(
-        authProvider.currentUser!.userId,
-      );
-      if (stores.isNotEmpty) {
-        _selectedStoreId = stores.first['storeId'];
-      }
-    }
+  @override
+  void dispose() {
+    _projectNameController.dispose();
+    _courseNameController.dispose();
+    _descriptionController.dispose();
+    _resourcesController.dispose();
+    super.dispose();
+  }
 
-    if (_selectedStoreId != null) {
-      final theme = await _themeService.getThemeByStore(_selectedStoreId!);
-      if (theme != null) {
-        setState(() {
-          _primaryColor = theme['primaryColor'];
-          _secondaryColor = theme['secondaryColor'];
-          _fontFamily = theme['fontFamily'];
-          _logoPath = theme['logo'];
-          _bannerPath = theme['banner'];
-        });
+  Future<void> _loadProject() async {
+    if (widget.projectId != null) {
+      try {
+        final project = await _projectService.getProjectById(widget.projectId!);
+        if (project != null) {
+          setState(() {
+            _project = project;
+            _projectNameController.text = project.projectName;
+            _courseNameController.text = project.courseName;
+            _descriptionController.text = project.description;
+            _resourcesController.text = project.resources.join(', ');
+            _isPublic = project.status == ProjectStatus.public;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur: $e')),
+          );
+        }
       }
     }
     setState(() => _isLoading = false);
   }
 
-  Future<void> _pickLogo() async {
-    final image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => _logoPath = image.path);
-    }
-  }
+  Future<void> _saveProject() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  Future<void> _pickBanner() async {
-    final image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => _bannerPath = image.path);
-    }
-  }
+    try {
+      if (_project != null) {
+        final updatedProject = _project!.copyWith(
+          projectName: _projectNameController.text.trim(),
+          courseName: _courseNameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          resources: _resourcesController.text
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList(),
+          status: _isPublic ? ProjectStatus.public : ProjectStatus.private,
+        );
 
-  Future<void> _saveTheme() async {
-    if (_selectedStoreId == null) return;
-
-    await _themeService.saveTheme(
-      storeId: _selectedStoreId!,
-      primaryColor: _primaryColor,
-      secondaryColor: _secondaryColor,
-      fontFamily: _fontFamily,
-      logo: _logoPath,
-      banner: _bannerPath,
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Thème enregistré avec succès'),
-          backgroundColor: Colors.green,
-          action: SnackBarAction(
-            label: 'Prévisualiser',
-            textColor: Colors.white,
-            onPressed: () {
-              if (_selectedStoreId != null) {
-                Navigator.pushNamed(
-                  context,
-                  '/vendor-home',
-                  arguments: {'storeId': _selectedStoreId!},
-                );
-              }
-            },
-          ),
-        ),
-      );
+        await _projectService.updateProject(updatedProject);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Projet mis à jour avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
     }
   }
 
@@ -124,177 +107,158 @@ class _StoreSettingsScreenState extends State<StoreSettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Personnalisation'),
-        backgroundColor: AppColors.primaryDark,
+        title: const Text('Paramètres du projet'),
+        backgroundColor: const Color(0xFF3B82F6),
+        foregroundColor: Colors.white,
         actions: [
-          if (_selectedStoreId != null)
-            IconButton(
-              icon: const Icon(Icons.preview),
-              tooltip: 'Prévisualiser',
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/store-preview',
-                  arguments: {'storeId': _selectedStoreId!},
-                );
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _saveProject,
+          ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Personnalisez votre magasin',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 30),
-                  // Logo
-                  const Text(
-                    'Logo',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: _pickLogo,
-                    child: Container(
-                      height: 150,
-                      width: 150,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey),
-                      ),
-                      child: _logoPath != null && _logoPath!.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: _logoPath!.startsWith('http')
-                                  ? Image.network(_logoPath!, fit: BoxFit.cover)
-                                  : Image.file(File(_logoPath!), fit: BoxFit.cover),
-                            )
-                          : const Icon(Icons.image, size: 50),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  // Banner
-                  const Text(
-                    'Bannière',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  GestureDetector(
-                    onTap: _pickBanner,
-                    child: Container(
-                      height: 200,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey),
-                      ),
-                      child: _bannerPath != null && _bannerPath!.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: _bannerPath!.startsWith('http')
-                                  ? Image.network(_bannerPath!, fit: BoxFit.cover)
-                                  : Image.file(File(_bannerPath!), fit: BoxFit.cover),
-                            )
-                          : const Icon(Icons.image, size: 50),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  // Primary Color
-                  const Text(
-                    'Couleur principale',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Code couleur (ex: #3B82F6)',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: Container(
-                        width: 50,
-                        height: 50,
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _primaryColor != null
-                              ? Color(int.parse(_primaryColor!.replaceFirst('#', '0xFF')))
-                              : Colors.blue,
-                          borderRadius: BorderRadius.circular(5),
+          : _project == null
+              ? const Center(
+                  child: Text('Projet non trouvé'),
+                )
+              : Form(
+                  key: _formKey,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Informations du projet',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ),
-                    onChanged: (value) => setState(() => _primaryColor = value),
-                  ),
-                  const SizedBox(height: 20),
-                  // Secondary Color
-                  const Text(
-                    'Couleur secondaire',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Code couleur (ex: #2563EB)',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: Container(
-                        width: 50,
-                        height: 50,
-                        margin: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _secondaryColor != null
-                              ? Color(int.parse(_secondaryColor!.replaceFirst('#', '0xFF')))
-                              : Colors.blue[700],
-                          borderRadius: BorderRadius.circular(5),
+                        const SizedBox(height: 20),
+                        
+                        // Nom du projet
+                        TextFormField(
+                          controller: _projectNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom du projet',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.folder),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Le nom du projet est requis';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        
+                        // Nom du cours
+                        TextFormField(
+                          controller: _courseNameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom du cours',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.school),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Le nom du cours est requis';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Description
+                        TextFormField(
+                          controller: _descriptionController,
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.description),
+                          ),
+                          maxLines: 3,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'La description est requise';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Ressources
+                        TextFormField(
+                          controller: _resourcesController,
+                          decoration: const InputDecoration(
+                            labelText: 'Ressources (séparées par des virgules)',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.library_books),
+                            hintText: 'GitHub, Documentation, API',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Visibilité
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Visibilité du projet',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SwitchListTile(
+                                  title: const Text('Projet public'),
+                                  subtitle: Text(
+                                    _isPublic
+                                        ? 'Visible par tous les utilisateurs'
+                                        : 'Visible uniquement par vous',
+                                  ),
+                                  value: _isPublic,
+                                  onChanged: (value) {
+                                    setState(() => _isPublic = value);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        // Bouton de sauvegarde
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _saveProject,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF3B82F6),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text(
+                              'Enregistrer les modifications',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    onChanged: (value) => setState(() => _secondaryColor = value),
                   ),
-                  const SizedBox(height: 20),
-                  // Font Family
-                  const Text(
-                    'Police de caractères',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: _fontFamily,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _fonts.map((font) {
-                      return DropdownMenuItem(
-                        value: font,
-                        child: Text(font),
-                      );
-                    }).toList(),
-                    onChanged: (value) => setState(() => _fontFamily = value),
-                  ),
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _saveTheme,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text(
-                        'Enregistrer',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
     );
   }
 }

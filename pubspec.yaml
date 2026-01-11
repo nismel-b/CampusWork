@@ -90,6 +90,9 @@ dependencies:
   crypto: ^3.0.7
   encrypt: ^5.0.3
   
+  # String similarity for plagiarism detection
+  string_similarity: ^2.0.0
+  
   # File handling
   path_provider: ^2.1.1
   
@@ -99,7 +102,6 @@ dependencies:
   # Image compression
   image: ^4.1.3
   flutter_native_splash: ^2.4.7
-  flutter_web_auth: ^0.6.0
   google_sign_in: 6.1.6
 
 dev_dependencies:
@@ -133,6 +135,12 @@ flutter:
    # image_path: assets/icons/dreamflow_icon.jpg
   #remove_alpha_ios: true
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/image/logo_campuswork.jpg"
+  remove_alpha_ios: true
+
 
   # To add assets to your application, add an assets section, like this:
   assets:
@@ -164,3 +172,16 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuration du splash screen
+flutter_native_splash:
+  color: "#4A90E2"
+  image: assets/image/logo_campuswork.jpg
+  color_dark: "#1A1D29"
+  image_dark: assets/image/logo_campuswork.jpg
+  android_12:
+    image: assets/image/logo_campuswork.jpg
+    color: "#4A90E2"
+    image_dark: assets/image/logo_campuswork.jpg
+    color_dark: "#1A1D29"
+  web: false

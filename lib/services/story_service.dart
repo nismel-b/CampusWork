@@ -87,6 +87,66 @@ class StoryService {
       return false;
     }
   }
+
+  // Create story (method needed by create_story_page.dart)
+  Future<bool> createStory({
+    required String userId,
+    required String title,
+    required String description,
+    required String type,
+    String? imageUrl,
+    String? projectId,
+    int hoursToExpire = 24,
+  }) async {
+    final storyId = const Uuid().v4();
+    final now = DateTime.now();
+    final expiresAt = now.add(Duration(hours: hoursToExpire));
+    
+    return await addStory(
+      userId: userId,
+      storyId: storyId,
+      imageUrl: imageUrl ?? '',
+      type: type,
+      title: title,
+      description: description,
+      projectId: projectId,
+      createdAt: DateFormat('yyyy-MM-dd HH:mm:ss').format(now),
+      expiresAt: DateFormat('yyyy-MM-dd HH:mm:ss').format(expiresAt),
+      hoursToExpire: hoursToExpire,
+    );
+  }
+
+  // Get all stories (method needed by story_page.dart)
+  Future<List<Map<String, dynamic>>> getAllStories() async {
+    try {
+      final db = await _dbHelper.database;
+      final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      return await db.rawQuery('''
+        SELECT * FROM stories
+        WHERE expiresAt > ?
+        ORDER BY createdAt DESC
+      ''', [now]);
+    } catch (e) {
+      debugPrint('Error getting all stories: $e');
+      return [];
+    }
+  }
+
+  // Get stories by project (method needed by stories_screen.dart)
+  Future<List<Map<String, dynamic>>> getStoriesByProject(String projectId) async {
+    try {
+      final db = await _dbHelper.database;
+      final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      return await db.rawQuery('''
+        SELECT * FROM stories
+        WHERE projectId = ? AND expiresAt > ?
+        ORDER BY createdAt DESC
+      ''', [projectId, now]);
+    } catch (e) {
+      debugPrint('Error getting stories by project: $e');
+      return [];
+    }
+  }
 }
 
 

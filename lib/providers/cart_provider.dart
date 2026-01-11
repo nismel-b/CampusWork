@@ -1,18 +1,59 @@
 import 'package:flutter/foundation.dart';
-import 'package:campuswork/model/project.dart';
-import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/services/card_service.dart';
 
+class CartItem {
+  final String? cartId;
+  final String userId;
+  final String projectId;
+  final String projectName;
+  final String? imageUrl;
+  final String? username;
+  final int quantity;
+
+  CartItem({
+    this.cartId,
+    required this.userId,
+    required this.projectId,
+    required this.projectName,
+    this.imageUrl,
+    this.username,
+    this.quantity = 1,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'cartId': cartId,
+      'userId': userId,
+      'projectId': projectId,
+      'projectName': projectName,
+      'imageUrl': imageUrl,
+      'username': username,
+      'quantity': quantity,
+    };
+  }
+
+  factory CartItem.fromMap(Map<String, dynamic> map) {
+    return CartItem(
+      cartId: map['cardId'], // Note: le service utilise 'cardId'
+      userId: map['userId'] ?? '',
+      projectId: map['projectId'] ?? '',
+      projectName: map['projectName'] ?? '',
+      imageUrl: map['imageUrl'],
+      username: map['username'],
+      quantity: 1, // Le service card ne gère pas les quantités
+    );
+  }
+}
 
 class CartProvider with ChangeNotifier {
-  final CardService _cartService = CardService();
+  final CardService _cardService = CardService();
   List<CartItem> _cartItems = [];
   bool _isLoading = false;
   String? _userId;
 
   List<CartItem> get cartItems => _cartItems;
   bool get isLoading => _isLoading;
-
+  int get itemCount => _cartItems.length;
 
   void setUserId(String userId) {
     _userId = userId;
@@ -26,17 +67,8 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final items = await _cartService.getCartItems(_userId!);
-      _cartItems = items.map((item) {
-        return CartItem(
-          cartId: item['cartId'] as String?,
-          userId: _userId!,
-          projectId: item['projectId'] as String,
-          project: Project.fromMap(item),
-          projectname: item['projectname'] as String?,
-          studentId: item['studentId'] as String?,
-        );
-      }).toList();
+      final items = await _cardService.getCardItems(_userId!);
+      _cartItems = items.map((item) => CartItem.fromMap(item)).toList();
     } catch (e) {
       debugPrint('Error loading cart: $e');
     }
@@ -45,14 +77,15 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> addToCart(Project project, {int quantity = 1}) async {
+  Future<bool> addToCart(String projectId) async {
     if (_userId == null) return false;
 
     try {
-      final success = await _cartService.addToCart(
+      final cardId = 'card_${DateTime.now().millisecondsSinceEpoch}';
+      final success = await _cardService.addToPanel(
+        cardId: cardId,
         userId: _userId!,
-        projectId: project.projectId!,
-        quantity: quantity,
+        projectId: projectId,
       );
       if (success) {
         await loadCart();
@@ -64,30 +97,11 @@ class CartProvider with ChangeNotifier {
     return false;
   }
 
-  Future<bool> updateQuantity(String productId, int quantity) async {
+  Future<bool> removeFromCart(String projectId) async {
     if (_userId == null) return false;
 
     try {
-      final success = await _cartService.updateCartItemQuantity(
-        userId: _userId!,
-        productId: productId,
-        quantity: quantity,
-      );
-      if (success) {
-        await loadCart();
-        return true;
-      }
-    } catch (e) {
-      debugPrint('Error updating quantity: $e');
-    }
-    return false;
-  }
-
-  Future<bool> removeFromCart(String productId) async {
-    if (_userId == null) return false;
-
-    try {
-      final success = await _cartService.removeFromCart(_userId!, productId);
+      final success = await _cardService.removeFromPanel(_userId!, projectId);
       if (success) {
         await loadCart();
         return true;
@@ -102,7 +116,7 @@ class CartProvider with ChangeNotifier {
     if (_userId == null) return false;
 
     try {
-      final success = await _cartService.clearCart(_userId!);
+      final success = await _cardService.clearPanel(_userId!);
       if (success) {
         _cartItems = [];
         notifyListeners();
@@ -112,6 +126,23 @@ class CartProvider with ChangeNotifier {
       debugPrint('Error clearing cart: $e');
     }
     return false;
+  }
+
+  bool isInCart(String projectId) {
+    return _cartItems.any((item) => item.projectId == projectId);
+  }
+
+  CartItem? getCartItem(String projectId) {
+    try {
+      return _cartItems.firstWhere((item) => item.projectId == projectId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<int> getCartCount() async {
+    if (_userId == null) return 0;
+    return await _cardService.getPanelCount(_userId!);
   }
 }
 

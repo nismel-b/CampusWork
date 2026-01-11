@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-//import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/auth/auth_service.dart';
-import 'package:campuswork/services/like-services.dart';
-import 'package:campuswork/services/comment-service.dart';
-import 'package:campuswork/services/notification-services.dart';
+import 'package:campuswork/services/interaction_service.dart';
+import 'package:campuswork/services/comment_service.dart';
+import 'package:campuswork/services/notification_services.dart';
 import 'package:campuswork/model/project.dart';
 import 'package:campuswork/model/user.dart';
-import 'package:campuswork/model/comments.dart';
+import 'package:campuswork/model/comment.dart';
 import 'package:campuswork/components/user_avatar.dart';
 
 class ProjectDetailsPage extends StatefulWidget {
@@ -53,12 +52,12 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     if (project != null) {
       setState(() {
         _project = project;
-        _isLiked = LikeService().isLikedByUser(project.projectId, _currentUser!.userId);
-        _comments = CommentService().getCommentsByProject(project.projectId);
-        if (project.grade != null) {
-          _gradeController.text = project.grade.toString();
+        _isLiked = InteractionService().isLikedByUser(project.projectId ?? '', _currentUser!.userId);
+        _comments = CommentService().getCommentsByProject(project.projectId ?? '');
+        if (project.grade != null && project.grade!.isNotEmpty) {
+          _gradeController.text = project.grade!;
         }
-        if (project.lecturerComment != null) {
+        if (project.lecturerComment != null && project.lecturerComment!.isNotEmpty) {
           _lecturerCommentController.text = project.lecturerComment!;
         }
       });
@@ -66,50 +65,49 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
   }
 
   Future<void> _toggleLike() async {
-    if (_project == null || _currentUser == null) return;
+    if (_project == null || _currentUser == null || _project!.projectId == null) return;
 
-    await LikeService().toggleLike(_project!.projectId, _currentUser!.userId);
+    await InteractionService().toggleLike(_project!.projectId!, _currentUser!.userId);
 
     if (!_isLiked) {
-      await ProjectService().incrementLikes(_project!.projectId);
-      final projectOwner = await AuthService().getUserById(_project!.studentId);
+      await ProjectService().incrementLikes(_project!.projectId!);
+      final projectOwner = await AuthService().getUserById(_project!.userId);
       if (projectOwner != null && projectOwner.userId != _currentUser!.userId) {
         await NotificationService().createLikeNotification(
           projectOwner.userId,
           _currentUser!.fullName,
           _project!.projectName,
-          _project!.projectId,
+          _project!.projectId!,
         );
       }
     } else {
-      await ProjectService().decrementLikes(_project!.projectId);
+      await ProjectService().decrementLikes(_project!.projectId!);
     }
 
     _loadProject();
   }
 
   Future<void> _addComment() async {
-    if (_commentController.text.trim().isEmpty || _project == null) return;
+    if (_commentController.text.trim().isEmpty || _project == null || _project!.projectId == null) return;
 
     final comment = Comment(
-      id: const Uuid().v4(),
-      projectId: _project!.projectId,
       userId: _currentUser!.userId,
+      projectId: _project!.projectId!,
       userFullName: _currentUser!.fullName,
       content: _commentController.text.trim(),
       createdAt: DateTime.now(),
     );
 
     await CommentService().addComment(comment);
-    await ProjectService().incrementComments(_project!.projectId);
+    await ProjectService().incrementComments(_project!.projectId!);
 
-    final projectOwner = await AuthService().getUserById(_project!.studentId);
-    if (projectOwner != null && projectOwner.id != _currentUser!.userId) {
+    final projectOwner = await AuthService().getUserById(_project!.userId);
+    if (projectOwner != null && projectOwner.userId != _currentUser!.userId) {
       await NotificationService().createCommentNotification(
-        projectOwner.id,
+        projectOwner.userId,
         _currentUser!.fullName,
         _project!.projectName,
-        _project!.projectId,
+        _project!.projectId!,
       );
     }
 
@@ -132,18 +130,18 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     }
 
     await ProjectService().evaluateProject(
-      _project!.projectId,
-      grade,
+      _project!.projectId!,
+      _gradeController.text,
       _lecturerCommentController.text.trim().isEmpty
           ? null
           : _lecturerCommentController.text.trim(),
     );
 
     await NotificationService().createEvaluationNotification(
-      _project!.studentId,
+      _project!.userId,
       _project!.projectName,
-      grade,
-      _project!.projectId,
+      double.parse(_gradeController.text),
+      _project!.projectId!,
     );
 
     if (mounted) {
@@ -217,14 +215,14 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
       );
     }
 
-    final isOwner = _currentUser?.userId == _project!.studentId;
+    final isOwner = _currentUser?.userId == _project!.userId;
     final isLecturer = _currentUser?.userRole == UserRole.lecturer;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Détails du projet'),
         actions: [
-          if (isLecturer && _project!.state == ProjectState.termine)
+          if (isLecturer && _project!.state == 'termine')
             IconButton(
               icon: const Icon(Icons.grade),
               onPressed: _showEvaluationSheet,
@@ -394,7 +392,11 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            UserAvatar(name: comment.userFullName, size: 36),
+                            UserAvatar(
+                              userId: comment.userId,
+                              name: comment.userFullName,
+                              size: 36,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Container(
@@ -468,15 +470,21 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     String label;
 
     switch (_project!.state) {
-      case ProjectState.enCours:
+      case 'enCours':
         color = Colors.orange;
         label = 'En cours';
-      case ProjectState.termine:
+        break;
+      case 'termine':
         color = Colors.green;
         label = 'Terminé';
-      case ProjectState.note:
+        break;
+      case 'note':
         color = Colors.blue;
         label = 'Noté';
+        break;
+      default:
+        color = Colors.orange;
+        label = 'En cours';
     }
 
     return Container(
@@ -497,10 +505,11 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     );
   }
 
-  Color _getGradeColor(double grade) {
-    if (grade >= 16) return Colors.green;
-    if (grade >= 12) return Colors.blue;
-    if (grade >= 10) return Colors.orange;
+  Color _getGradeColor(String grade) {
+    final gradeValue = double.tryParse(grade) ?? 0.0;
+    if (gradeValue >= 16) return Colors.green;
+    if (gradeValue >= 12) return Colors.blue;
+    if (gradeValue >= 10) return Colors.orange;
     return Colors.red;
   }
 }

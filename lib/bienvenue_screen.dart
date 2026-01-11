@@ -35,11 +35,10 @@ class BienvenueScreen extends StatelessWidget {
                       ],
                     ),
                     child: Center(
-                      child: Image.asset(
-                        '',
-                        width: 500,
-                        height: 500,
-
+                      child: Icon(
+                        Icons.school,
+                        size: 80,
+                        color: Colors.blueAccent,
                       ),
                     ),
                   ),

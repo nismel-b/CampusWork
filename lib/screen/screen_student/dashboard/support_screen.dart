@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:store_buy/service/support_service.dart';
-import 'package:store_buy/providers/auth_provider.dart';
+import 'package:campuswork/services/support_service.dart';
+import 'package:campuswork/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 

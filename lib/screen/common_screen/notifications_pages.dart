@@ -192,6 +192,8 @@ class _NotificationItem extends StatelessWidget {
         return Icons.check_circle;
       case NotificationType.projectUpdate:
         return Icons.update;
+      case NotificationType.message_:
+        return Icons.message;
     }
   }
 
@@ -207,6 +209,8 @@ class _NotificationItem extends StatelessWidget {
         return Colors.green;
       case NotificationType.projectUpdate:
         return Colors.purple;
+      case NotificationType.message_:
+        return Colors.pink;
     }
   }
 

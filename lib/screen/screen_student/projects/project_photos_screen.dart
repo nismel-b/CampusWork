@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:store_buy/service/store_photo_service.dart';
+import 'package:campuswork/services/project_photo_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
-
-/// Écran pour gérer les photos du magasin physique
-class StorePhotosScreen extends StatefulWidget {
-  final String storeId;
-  const StorePhotosScreen({super.key, required this.storeId});
+/// Écran pour gérer les photos du projet
+class ProjectPhotosScreen extends StatefulWidget {
+  final String projectId;
+  const ProjectPhotosScreen({super.key, required this.projectId});
 
   @override
-  State<StorePhotosScreen> createState() => _StorePhotosScreenState();
+  State<ProjectPhotosScreen> createState() => _ProjectPhotosScreenState();
 }
 
-class _StorePhotosScreenState extends State<StorePhotosScreen> {
-  final StorePhotoService _photoService = StorePhotoService();
+class _ProjectPhotosScreenState extends State<ProjectPhotosScreen> {
+  final ProjectPhotoService _photoService = ProjectPhotoService();
   final ImagePicker _imagePicker = ImagePicker();
   List<Map<String, dynamic>> _photos = [];
   bool _isLoading = true;
@@ -25,7 +25,7 @@ class _StorePhotosScreenState extends State<StorePhotosScreen> {
   }
 
   Future<void> _loadPhotos() async {
-    final photos = await _photoService.getStorePhotos(widget.storeId);
+    final photos = await _photoService.getProjectPhotos(widget.projectId);
     setState(() {
       _photos = photos;
       _isLoading = false;
@@ -41,8 +41,8 @@ class _StorePhotosScreenState extends State<StorePhotosScreen> {
     if (pickedFile != null) {
       // In a real app, upload to cloud storage and get URL
       // For now, use file path
-      final success = await _photoService.addStorePhoto(
-        storeId: widget.storeId,
+      final success = await _photoService.addProjectPhoto(
+        projectId: widget.projectId,
         photoUrl: pickedFile.path,
       );
 
@@ -89,7 +89,7 @@ class _StorePhotosScreenState extends State<StorePhotosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Photos du magasin'),
+        title: const Text('Photos du projet'),
         backgroundColor: const Color(0xFF3B82F6),
       ),
       body: _isLoading
@@ -130,18 +130,31 @@ class _StorePhotosScreenState extends State<StorePhotosScreen> {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        photo['photoUrl'] ?? '',
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey[300],
-                            child: const Icon(Icons.image, size: 50),
-                          );
-                        },
-                      ),
+                      child: photo['photoUrl']?.startsWith('http') == true
+                          ? Image.network(
+                              photo['photoUrl'] ?? '',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image, size: 50),
+                                );
+                              },
+                            )
+                          : Image.file(
+                              File(photo['photoUrl'] ?? ''),
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image, size: 50),
+                                );
+                              },
+                            ),
                     ),
                     Positioned(
                       top: 5,

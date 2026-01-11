@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:campuswork/database/database_helper.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart' as sqflite;
 
 class CardService {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
@@ -37,8 +38,8 @@ class CardService {
     }
   }
 
-  /// Get user panel items with project details
-  Future<List<Map<String, dynamic>>> getPanelItems(String userId) async {
+  /// Get user card items with project details
+  Future<List<Map<String, dynamic>>> getCardItems(String userId) async {
     try {
       final db = await _dbHelper.database;
 
@@ -108,7 +109,7 @@ class CardService {
         [userId],
       );
 
-      return Sqflite.firstIntValue(result) ?? 0;
+      return sqflite.Sqflite.firstIntValue(result) ?? 0;
     } catch (e) {
       debugPrint('Error getting panel count: $e');
       return 0;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Avatar utilisateur avec initiales ou image
 class UserAvatar extends StatelessWidget {
+  final String userId;
   final String? imageUrl;
   final String name;
   final double size;
@@ -12,6 +13,7 @@ class UserAvatar extends StatelessWidget {
 
   const UserAvatar({
     super.key,
+    required this.userId,
     this.imageUrl,
     required this.name,
     this.size = 40,
@@ -131,6 +133,7 @@ class UserAvatar extends StatelessWidget {
 /// Avatar avec nom et rôle
 class UserAvatarWithInfo extends StatelessWidget {
   final String? imageUrl;
+  final String userId;
   final String name;
   final String? subtitle;
   final double avatarSize;
@@ -139,6 +142,7 @@ class UserAvatarWithInfo extends StatelessWidget {
 
   const UserAvatarWithInfo({
     super.key,
+    required this.userId,
     this.imageUrl,
     required this.name,
     this.subtitle,
@@ -156,6 +160,7 @@ class UserAvatarWithInfo extends StatelessWidget {
         child: Row(
           children: [
             UserAvatar(
+              userId: userId,
               imageUrl: imageUrl,
               name: name,
               size: avatarSize,
@@ -199,6 +204,7 @@ class UserAvatarWithInfo extends StatelessWidget {
 
 /// Liste d'avatars empilés
 class AvatarStack extends StatelessWidget {
+  final List<String> userIds;
   final List<String> names;
   final List<String?>? imageUrls;
   final double size;
@@ -207,6 +213,7 @@ class AvatarStack extends StatelessWidget {
 
   const AvatarStack({
     super.key,
+    required this.userIds,
     required this.names,
     this.imageUrls,
     this.size = 32,
@@ -240,6 +247,7 @@ class AvatarStack extends StatelessWidget {
                     border: Border.all(color: Colors.white, width: 2),
                   ),
                   child: UserAvatar(
+                    userId: index < userIds.length ? userIds[index] : '?',
                     imageUrl: imageUrls != null && index < imageUrls!.length
                         ? imageUrls![index]
                         : null,
@@ -281,6 +289,7 @@ class AvatarStack extends StatelessWidget {
 
 /// Avatar cliquable avec menu
 class UserAvatarMenu extends StatelessWidget {
+  final String userId;
   final String? imageUrl;
   final String name;
   final String? email;
@@ -290,6 +299,7 @@ class UserAvatarMenu extends StatelessWidget {
 
   const UserAvatarMenu({
     super.key,
+    required this.userId,
     this.imageUrl,
     required this.name,
     this.email,
@@ -305,6 +315,7 @@ class UserAvatarMenu extends StatelessWidget {
       itemBuilder: (context) => menuItems,
       offset: const Offset(0, 56),
       child: UserAvatar(
+        userId: userId,
         imageUrl: imageUrl,
         name: name.isNotEmpty ? name : 'User',
         size: size,
@@ -312,7 +323,7 @@ class UserAvatarMenu extends StatelessWidget {
     );
   }
 }
-
+/*
 /// Widget helper pour tester les avatars
 class AvatarShowcase extends StatelessWidget {
   const AvatarShowcase({super.key});
@@ -328,7 +339,7 @@ class AvatarShowcase extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: const [
-              UserAvatar(name: 'John Doe', size: 48),
+              UserAvatar(userId: 123456, name: 'John Doe', size: 48),
               SizedBox(width: 16),
               UserAvatar(name: 'Jane Smith', size: 48, showBadge: true),
               SizedBox(width: 16),
@@ -356,4 +367,4 @@ class AvatarShowcase extends StatelessWidget {
       ),
     );
   }
-}
+}*/

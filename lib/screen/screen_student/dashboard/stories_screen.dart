@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:campuswork/services/story_service.dart';
 import 'package:campuswork/services/project_service.dart';
-import 'package:campuswork/providers/auth_provider.dart';
-import 'package:provider/provider.dart';
+import 'package:campuswork/model/user.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class StoriesScreen extends StatefulWidget {
-  final String? storeId;
-  const StoriesScreen({super.key, this.storeId});
+  final User currentUser;
+  const StoriesScreen({super.key, required this.currentUser});
 
   @override
   State<StoriesScreen> createState() => _StoriesScreenState();
@@ -29,27 +28,24 @@ class _StoriesScreenState extends State<StoriesScreen> {
   }
 
   Future<void> _loadData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (widget.projectId != null) {
-      _selectedProjectId = widget.projectId;
-    } else if (authProvider.currentUser != null) {
-      final projects = await _projectService.getProjectByUserId(
-        authProvider.currentUser!.userId,
-      );
-      if (projects.isNotEmpty) {
-        _selectedProjectId = projects.first['projectId'];
-      }
-    }
-
-    if (_selectedProjectId != null) {
-      final stories = await _storyService.getStoriesByProject(_selectedProjectId!);
-      final projects = await _projectService.getProjectsByUserId(_selectedProjectId!);
+    setState(() => _isLoading = true);
+    
+    try {
+      // Get user's projects
+      final projects = await _projectService.getProjectByUserId(widget.currentUser.userId);
+      
+      // Get user's stories
+      final stories = await _storyService.getStoriesByUser(widget.currentUser.userId);
+      
       setState(() {
         _stories = stories;
-        _projects = projects;
+        _projects = projects.map((p) => {
+          'projectId': p.projectId,
+          'projectName': p.projectName,
+        }).toList();
         _isLoading = false;
       });
-    } else {
+    } catch (e) {
       setState(() => _isLoading = false);
     }
   }
@@ -60,14 +56,14 @@ class _StoriesScreenState extends State<StoriesScreen> {
       builder: (context) => _AddStoryDialog(projects: _projects, type: type),
     );
 
-    if (result != null && _selectedProjectId != null) {
-      await _storyService.addStory(
-        projectId: _selectedProjectId!,
-        imageUrl: result['imageUrl'] ?? '',
+    if (result != null) {
+      await _storyService.createStory(
+        userId: widget.currentUser.userId,
+        title: result['title'] ?? '',
+        description: result['description'] ?? '',
         type: type,
-        title: result['title'],
-        description: result['description'],
-        userId: result['userId'],
+        imageUrl: result['imageUrl'],
+        projectId: result['projectId'],
       );
       _loadData();
     }
@@ -243,9 +239,9 @@ class _StoriesScreenState extends State<StoriesScreen> {
 }
 
 class _AddStoryDialog extends StatefulWidget {
-  final List<Map<String, dynamic>> products;
+  final List<Map<String, dynamic>> projects;
   final String type;
-  const _AddStoryDialog({required this.products, required this.type});
+  const _AddStoryDialog({required this.projects, required this.type});
 
   @override
   State<_AddStoryDialog> createState() => _AddStoryDialogState();
@@ -257,7 +253,7 @@ class _AddStoryDialogState extends State<_AddStoryDialog> {
   final _priceController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   String? _imagePath;
-  String? _selectedProductId;
+  String? _selectedProjectId;
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +304,7 @@ class _AddStoryDialogState extends State<_AddStoryDialog> {
               DropdownButtonFormField<String>(
                 initialValue: _selectedProjectId,
                 decoration: const InputDecoration(labelText: 'Projet'),
-                items: widget.products.map<DropdownMenuItem<String>>((p) {
+                items: widget.projects.map<DropdownMenuItem<String>>((p) {
                   return DropdownMenuItem<String>(
                     value: p['projectId'] as String?,
                     child: Text(p['projectName'] ?? ''),

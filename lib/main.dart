@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'navigation/app_route.dart';
 import 'theme/theme.dart';
 import 'auth/auth_service.dart';
 import 'services/project_service.dart';
-import 'services/comment-service.dart';
-import 'services/like-services.dart';
+import 'services/comment_service.dart';
+import 'services/interaction_service.dart';
 import 'services/notification_services.dart';
+import 'services/post_service.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   runApp(const CampusWorkApp());
 }
 
@@ -34,8 +37,9 @@ class _MyAppState extends State<CampusWorkApp> {
       await AuthService().init();
       await ProjectService().init();
       await CommentService().init();
-      await LikeService().init();
+      await InteractionService().init();
       await NotificationService().init();
+      await PostService().init();
 
       if (mounted) {
         setState(() => _isInitialized = true);
@@ -47,6 +51,9 @@ class _MyAppState extends State<CampusWorkApp> {
           _errorMessage = e.toString();
         });
       }
+    } finally {
+      // Supprimer le splash screen une fois l'initialisation terminée
+      FlutterNativeSplash.remove();
     }
   }
 

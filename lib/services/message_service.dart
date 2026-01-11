@@ -35,14 +35,7 @@ class MessageService {
       });
 
       // Send push notification to receiver
-      await _notificationService.createNotification(
-        userId: receiverId,
-        type: 'message',
-        title: senderName ?? 'Nouveau message',
-        body: sanitizedContent.length > 50
-            ? '${sanitizedContent.substring(0, 50)}...'
-            : sanitizedContent,
-      );
+      await _notificationService.createNotification(receiverId, senderId);
 
       return true;
     } catch (e) {

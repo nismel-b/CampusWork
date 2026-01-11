@@ -111,6 +111,19 @@ class NotificationService {
     );
     await addNotification(notification);
   }
+  Future<void> createNotification(String receiverId, String senderId) async {
+    final notification = AppNotification(
+      notificationId: const Uuid().v4(),
+      userId: receiverId,
+      title: 'Nouveau message',
+      message: '$receiverId vous avez reçu un message de "$senderId"',
+      type: NotificationType.message_,
+      relatedId: senderId,
+      createdAt: DateTime.now(),
+    );
+    await addNotification(notification);
+  }
+
 
   Future<void> createEvaluationNotification(String studentId, String projectName, double grade, String projectId) async {
     final notification = AppNotification(

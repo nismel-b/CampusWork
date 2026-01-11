@@ -20,7 +20,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5, // Incrémenté pour les nouvelles tables
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -471,6 +471,101 @@ class DatabaseHelper {
 
       // Add onboarding step tracking
       await db.execute('ALTER TABLE onboarding_status ADD COLUMN currentStep INTEGER DEFAULT 0').catchError((e) => debugPrint('Column currentStep already exists'));
+    }
+
+    // Version 5: Nouvelles tables pour les groupes, interactions et paramètres
+    if (oldVersion < 5) {
+      // Table des groupes
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS groups (
+          groupId TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT NOT NULL,
+          createdBy TEXT NOT NULL,
+          type TEXT NOT NULL,
+          courseName TEXT,
+          academicYear TEXT,
+          section TEXT,
+          members TEXT,
+          projects TEXT,
+          evaluationCriteria TEXT,
+          maxMembers INTEGER DEFAULT 10,
+          isOpen INTEGER DEFAULT 0,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT,
+          FOREIGN KEY (createdBy) REFERENCES users (userId) ON DELETE CASCADE
+        )
+      ''');
+
+      // Table des interactions (likes et reviews fusionnés)
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS interactions (
+          interactionId TEXT PRIMARY KEY,
+          userId TEXT NOT NULL,
+          projectId TEXT NOT NULL,
+          type TEXT NOT NULL,
+          reviewText TEXT,
+          rating REAL,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT,
+          FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE,
+          FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE
+        )
+      ''');
+
+      // Table des commentaires
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS comments (
+          commentId TEXT PRIMARY KEY,
+          projectId TEXT NOT NULL,
+          userId TEXT NOT NULL,
+          userFullName TEXT NOT NULL,
+          content TEXT NOT NULL,
+          createdAt TEXT NOT NULL,
+          FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE,
+          FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
+        )
+      ''');
+
+      // Table des paramètres de profil
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS profile_settings (
+          userId TEXT PRIMARY KEY,
+          theme TEXT DEFAULT 'system',
+          language TEXT DEFAULT 'french',
+          notificationsEnabled INTEGER DEFAULT 1,
+          emailNotifications INTEGER DEFAULT 1,
+          projectUpdates INTEGER DEFAULT 1,
+          groupInvitations INTEGER DEFAULT 1,
+          commentReplies INTEGER DEFAULT 1,
+          likesNotifications INTEGER DEFAULT 0,
+          privacyMode INTEGER DEFAULT 0,
+          showEmail INTEGER DEFAULT 1,
+          showPhone INTEGER DEFAULT 0,
+          allowCollaboration INTEGER DEFAULT 1,
+          lastUpdated TEXT NOT NULL,
+          FOREIGN KEY (userId) REFERENCES users (userId) ON DELETE CASCADE
+        )
+      ''');
+
+      // Table des demandes de collaboration
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS collaboration_requests (
+          requestId TEXT PRIMARY KEY,
+          fromUserId TEXT NOT NULL,
+          toUserId TEXT NOT NULL,
+          projectId TEXT NOT NULL,
+          message TEXT,
+          status TEXT DEFAULT 'pending',
+          createdAt TEXT NOT NULL,
+          respondedAt TEXT,
+          FOREIGN KEY (fromUserId) REFERENCES users (userId) ON DELETE CASCADE,
+          FOREIGN KEY (toUserId) REFERENCES users (userId) ON DELETE CASCADE,
+          FOREIGN KEY (projectId) REFERENCES projects (projectId) ON DELETE CASCADE
+        )
+      ''');
+
+      debugPrint('✅ Added new tables for version 5');
     }
 
     debugPrint('✅ Database upgrade completed successfully');

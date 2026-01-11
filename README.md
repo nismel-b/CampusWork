@@ -1,106 +1,256 @@
-# campuswork
+# CampusWork - Plateforme de Gestion de Projets Académiques
 
-CampusWork
+Une application Flutter complète pour la gestion de projets académiques permettant aux étudiants, enseignants et administrateurs de collaborer efficacement.
 
-CampusWork est une application mobile développée avec Flutter, d
-ont l’objectif est de proposer une plateforme simple permettant de centraliser 
-et gérer des activités académiques (travaux, projets, informations) dans un contexte universitaire.
+## 🚀 Fonctionnalités
 
-Ce projet a été réalisé dans un cadre académique, avec un focus sur 
-la structuration d’une application mobile multiplateforme,
-l’ergonomie et les bonnes pratiques de développement Flutter.
+### Pour les Étudiants
+- ✅ Création et gestion de projets
+- ✅ Upload de fichiers et ressources
+- ✅ Système de likes et commentaires
+- ✅ Collaboration sur les projets
+- ✅ Profil personnalisé avec liens sociaux
+- ✅ Notifications en temps réel
+- ✅ Navigation par cours et catégories
 
-🎯 Objectifs du projet
+### Pour les Enseignants
+- ✅ Évaluation des projets
+- ✅ Attribution de notes
+- ✅ Commentaires détaillés
+- ✅ Gestion des cours
 
-Mettre en œuvre une application mobile Flutter fonctionnelle
+### Pour les Administrateurs
+- ✅ Approbation des comptes
+- ✅ Modération du contenu
+- ✅ Gestion des utilisateurs
 
-Comprendre la structure d’un projet Flutter professionnel
+## 🏗️ Architecture
 
-Implémenter une navigation multi-écrans
+Le projet suit une architecture modulaire avec :
 
-Manipuler des données (saisie, affichage, stockage, gestion des permissions, changement d'état)
+- **Modèles de données** : User, Student, Lecturer, Admin, Project, Comment, Like, Notification
+- **Services** : AuthService, ProjectService, CommentService, LikeService, NotificationService, UserService
+- **Écrans** : Dashboards spécialisés par rôle, pages de création/édition, profils
+- **Navigation** : GoRouter avec redirection basée sur les rôles
+- **Stockage** : SQLite avec SharedPreferences pour le cache
+- **Thème** : Design professionnel monochrome avec mode sombre
 
-Respecter les exigences d’un projet académique mobile
+## 📱 Écrans Disponibles
 
-📱 Fonctionnalités principales
+### Authentification
+- Page de connexion
+- Page d'inscription avec validation
 
-Interface utilisateur simple et intuitive
+### Étudiant
+- Dashboard avec statistiques
+- Création de projets (8 étapes)
+- Liste de mes projets
+- Détails des projets
+- Profil personnel
+- Paramètres
+- Équipe étudiante
+- Navigation par cours
+- Notifications
 
-Navigation entre plusieurs écrans
+### Enseignant
+- Dashboard enseignant
+- Évaluation des projets
+- Gestion des notes
 
-Gestion de contenu académique (ex. informations, travaux, projets – selon l’implémentation)
+### Administrateur
+- Dashboard admin
+- Gestion des utilisateurs
+- Approbation des comptes
 
-Structure de code claire et maintenable
+## 🛠️ Technologies Utilisées
 
-Le projet peut être étendu pour inclure des fonctionnalités supplémentaires telles que :
-la gestion des projets (intégration meme de git au sein de l'application)
-un détecteur de plagiat pour s'assurer de l'originalité d'un projet
+- **Flutter** 3.38.3
+- **Dart** 
+- **SQLite** pour la base de données
+- **SharedPreferences** pour le cache
+- **GoRouter** pour la navigation
+- **Provider** pour la gestion d'état
+- **Material Design 3**
 
+### Packages Principaux
+- `sqflite` - Base de données locale
+- `shared_preferences` - Stockage local
+- `go_router` - Navigation
+- `provider` - Gestion d'état
+- `image_picker` - Sélection d'images
+- `file_picker` - Sélection de fichiers
+- `uuid` - Génération d'identifiants
+- `intl` - Internationalisation
+- `crypto` - Chiffrement
+- `google_fonts` - Polices Google
 
-🛠️ Technologies utilisées
+## 🚀 Installation et Lancement
 
-Flutter
+### Prérequis
+- Flutter SDK 3.38.3 ou supérieur
+- Dart SDK
+- Android Studio / VS Code
+- Émulateur Android ou appareil physique
 
-Dart
+### Installation
+```bash
+# Cloner le projet
+git clone <repository-url>
+cd campuswork
 
-Android SDK
-
-Material Design
-
-📂 Structure du projet
-CampusWork/
-│
-├── android/              # Configuration Android
-├── lib/                  # Code source Dart
-│   ├── main.dart         # Point d’entrée de l’application
-│   └── ...               # Widgets et écrans
-├── test/                 # Tests (à compléter)
-├── pubspec.yaml          # Dépendances et configuration
-├── analysis_options.yaml # Règles d’analyse statique
-└── README.md             # Documentation du projet
-
-▶️ Lancer le projet
-Prérequis
-
-Flutter SDK installé
-
-Android Studio ou VS Code
-
-Un émulateur Android ou un appareil physique
-
-Étapes
-git clone https://github.com/nismel-b/CampusWork_.git
-cd CampusWork_
+# Installer les dépendances
 flutter pub get
+
+# Lancer l'application
 flutter run
+```
 
-🧪 Tests
+### Compilation
+```bash
+# Debug APK
+flutter build apk --debug
 
-Les tests unitaires et tests de widgets peuvent être ajoutés dans le dossier test/.
-Cette partie est prévue pour les évolutions futures du projet.
+# Release APK
+flutter build apk --release
 
-📌 Améliorations possibles
+# Web
+flutter build web
+```
 
-Ajout d’une base de données locale (SQLite, Hive)
+## 👥 Comptes de Test
 
-Authentification utilisateur
+L'application crée automatiquement des comptes de test :
 
-Notifications
+### Administrateur/Enseignant
+- **Username:** admin
+- **Password:** admin123
 
-Architecture plus avancée (Provider, Bloc, Clean Architecture)
+### Étudiant
+- **Username:** student  
+- **Password:** student123
 
-Support iOS
+## 📊 Structure du Projet
 
-Tests automatisés
+```
+lib/
+├── main.dart                 # Point d'entrée
+├── navigation/
+│   └── app_route.dart       # Configuration des routes
+├── theme/
+│   └── theme.dart           # Thèmes light/dark
+├── model/                   # Modèles de données
+│   ├── user.dart
+│   ├── student.dart
+│   ├── lecturer.dart
+│   ├── admin.dart
+│   ├── project.dart
+│   ├── comments.dart
+│   ├── like.dart
+│   └── notification.dart
+├── services/                # Logique métier
+│   ├── auth_service.dart
+│   ├── project_service.dart
+│   ├── comment-service.dart
+│   ├── like-services.dart
+│   ├── notification_services.dart
+│   └── user_service.dart
+├── auth/                    # Authentification
+│   ├── auth_service.dart
+│   ├── login_page.dart
+│   └── register_page.dart
+├── screen/                  # Écrans de l'app
+│   ├── screen_student/
+│   ├── screen_lecturer/
+│   ├── screen_admin/
+│   └── common_screen/
+├── components/              # Composants réutilisables
+├── database/               # Base de données
+├── utils/                  # Utilitaires
+└── storage/               # Stockage local
+```
 
-👨‍🎓 Auteur
+## 🔒 Sécurité
+
+- Hachage des mots de passe avec SHA-256
+- Validation des entrées utilisateur
+- Chiffrement des données sensibles
+- Gestion des permissions
+
+## 🎨 Design
+
+- **Style** : Monochrome professionnel académique
+- **Mode clair** : Fond blanc avec accents bleu-gris
+- **Mode sombre** : Bleu profond avec élévations bleu-gris
+- **Couleur principale** : Bleu profond (#2563EB)
+- **Layout** : Design basé sur des cartes avec espacement généreux
+- **Icônes** : Material Icons uniquement
+- **Typographie** : Hiérarchie claire avec bon contraste
+
+## 📈 Fonctionnalités Avancées
+
+### Système de Projets
+- Création en 8 étapes guidées
+- Upload de fichiers multiples
+- Gestion des collaborateurs
+- États : En cours, Terminé, Noté
+- Visibilité : Public/Privé
+- Catégorisation par cours
+
+### Interactions Sociales
+- Système de likes
+- Commentaires avec notifications
+- Profils utilisateur détaillés
+- Équipe étudiante
+
+### Notifications
+- Notifications push
+- Notifications par email
+- Types : Like, Commentaire, Évaluation, Approbation
+
+## 🔄 État du Projet
+
+### ✅ Complété
+- Architecture complète
+- Tous les modèles de données
+- Services fonctionnels
+- Écrans principaux
+- Système d'authentification
+- Navigation complète
+- Thème professionnel
+- Base de données SQLite
+
+### 🚧 En Cours / À Améliorer
+- Tests unitaires
+- Tests d'intégration
+- Optimisations de performance
+- Fonctionnalités de messagerie
+- Synchronisation cloud
+- Mode hors ligne
+
+## 👨‍🎓 Auteurs
 
 Projet réalisé par :
-TSAFACK NGOUFACK Ernis Merkel 
-Gloria CHIKOAM TCHAKOUNTE
+- **TSAFACK NGOUFACK Ernis Merkel**
+- **Gloria CHIKOAM TCHAKOUNTE**
 
-Dans le cadre d’un projet académique en développement mobile avec Flutter.
+Dans le cadre d'un projet académique en développement mobile avec Flutter.
 
-📄 Licence
+## 🤝 Contribution
 
-Ce projet est destiné à un usage éducatif.
+1. Fork le projet
+2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
+3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrir une Pull Request
+
+## 📄 Licence
+
+Ce projet est destiné à un usage éducatif et académique.
+
+## 📞 Support
+
+Pour toute question ou support, contactez l'équipe de développement.
+
+---
+
+**CampusWork** - Révolutionner la gestion de projets académiques 🎓

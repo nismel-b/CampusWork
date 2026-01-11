@@ -15,12 +15,10 @@ class SurveyService {
     required String question,
     required String type, // 'yes_no', 'multiple_choice', 'text'
     List<String>? options,
-    required DateTime createdAt,
     DateTime? expiresAt,
   }) async {
     try {
       final db = await _dbHelper.database;
-      final surveyId = const Uuid().v4();
       final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
 
       await db.insert('surveys', {
@@ -89,7 +87,6 @@ class SurveyService {
     required String userId,
     required String responseId,
     required String answer,
-    required DateTime createdAt,
   }) async {
     try {
       final db = await _dbHelper.database;
@@ -138,6 +135,71 @@ class SurveyService {
       debugPrint('Error deleting survey: $e');
       return false;
     }
+  }
+
+  /// Get all surveys (method needed by survey_page.dart)
+  Future<List<Map<String, dynamic>>> getAllSurveys() async {
+    try {
+      final db = await _dbHelper.database;
+      final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+      
+      return await db.rawQuery('''
+        SELECT * FROM surveys
+        WHERE (expiresAt IS NULL OR expiresAt > ?)
+        ORDER BY createdAt DESC
+      ''', [now]);
+    } catch (e) {
+      debugPrint('Error getting all surveys: $e');
+      return [];
+    }
+  }
+
+  /// Get survey options (method needed by survey_detail_page.dart)
+  Future<List<String>> getSurveyOptions(String surveyId) async {
+    try {
+      final db = await _dbHelper.database;
+      final result = await db.query(
+        'surveys',
+        columns: ['options'],
+        where: 'surveyId = ?',
+        whereArgs: [surveyId],
+      );
+      
+      if (result.isNotEmpty && result.first['options'] != null) {
+        final optionsString = result.first['options'] as String;
+        return optionsString.split('|');
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Error getting survey options: $e');
+      return [];
+    }
+  }
+
+  /// Check if user has voted (method needed by survey_detail_page.dart)
+  Future<bool> hasUserVoted(String surveyId, String userId) async {
+    try {
+      final db = await _dbHelper.database;
+      final result = await db.query(
+        'survey_responses',
+        where: 'surveyId = ? AND userId = ?',
+        whereArgs: [surveyId, userId],
+      );
+      return result.isNotEmpty;
+    } catch (e) {
+      debugPrint('Error checking if user voted: $e');
+      return false;
+    }
+  }
+
+  /// Vote on survey (method needed by survey_detail_page.dart)
+  Future<bool> vote(String surveyId, String userId, String answer) async {
+    return await respondToSurvey(
+      surveyId: surveyId,
+      userId: userId,
+      responseId: const Uuid().v4(),
+      answer: answer,
+    );
   }
 }
 
