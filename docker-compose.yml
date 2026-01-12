@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  campuswork-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: campuswork_frontend
+    ports:
+      - "3000:80"
+    environment:
+      # Variables pour vos services futurs
+      - API_KEY=${API_KEY}
+      - FIREBASE_CONFIG=${FIREBASE_CONFIG}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - CLOUDINARY_URL=${CLOUDINARY_URL}
+    restart: always
+
+# Pour lancer : docker-compose up -d --build

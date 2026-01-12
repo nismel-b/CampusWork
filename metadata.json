@@ -1,0 +1,7 @@
+{
+  "name": "CampusWork - Project Management Library",
+  "description": "A comprehensive digital library for managing university projects, featuring role-based access for students, lecturers, and admins with AI-powered project assistance.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
