@@ -7,6 +7,8 @@ import 'package:campuswork/screen/messages/messages_page.dart';
 import 'package:campuswork/screen/screen_student/dashboard/dashboard.dart';
 import 'package:campuswork/screen/screen_lecturer/dashboard/dashboard.dart';
 import 'package:campuswork/screen/screen_admin/dashboard/dashboard.dart';
+import 'package:campuswork/components/notifications_bell.dart';
+import 'package:campuswork/services/notification_services.dart';
 
 
 class MainNavigation extends StatefulWidget {
@@ -124,20 +126,20 @@ class _MainNavigationState extends State<MainNavigation> {
               // Cette fonctionnalité sera implémentée dans HomePage
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
+          NotificationBell(
+            notificationCount: NotificationService().getUnreadCountByUser(currentUser.userId),
             onPressed: () {
-              // Navigation vers les notifications
+              context.push('/notifications');
             },
           ),
           _buildProfileMenu(),
         ];
       case 1: // Dashboard
         List<Widget> actions = [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
+          NotificationBell(
+            notificationCount: NotificationService().getUnreadCountByUser(currentUser.userId),
             onPressed: () {
-              // Navigation vers les notifications
+              context.push('/notifications');
             },
           ),
         ];
@@ -175,6 +177,12 @@ class _MainNavigationState extends State<MainNavigation> {
         
       case 2: // Messages
         return [
+          NotificationBell(
+            notificationCount: NotificationService().getUnreadCountByUser(currentUser.userId),
+            onPressed: () {
+              context.push('/notifications');
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {

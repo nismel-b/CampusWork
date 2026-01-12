@@ -57,30 +57,30 @@ class Project {
   // Factory pour créer un Project depuis les données de la base de données
   factory Project.fromDatabase(Map<String, dynamic> dbData) {
     return Project(
-      projectId: dbData['projectId'] as String?,
-      projectName: dbData['projectName'] as String? ?? '',
-      courseName: dbData['courseName'] as String? ?? '',
-      description: dbData['description'] as String? ?? '',
-      userId: dbData['studentId'] as String? ?? '', // La DB utilise studentId
-      imageUrl: dbData['imageUrl'] as String?,
-      category: dbData['category'] as String?,
+      projectId: dbData['projectId']?.toString(),
+      projectName: dbData['projectName']?.toString() ?? '',
+      courseName: dbData['courseName']?.toString() ?? '',
+      description: dbData['description']?.toString() ?? '',
+      userId: dbData['studentId']?.toString() ?? dbData['userId']?.toString() ?? '', // Support both fields
+      imageUrl: dbData['imageUrl']?.toString(),
+      category: dbData['category']?.toString(),
       collaborators: _parseStringList(dbData['collaborators']),
-      architecturePatterns: dbData['architecturePatterns'] as String?,
-      uml: dbData['uml'] as String?,
-      prototypeLink: dbData['prototypeLink'] as String?,
-      downloadLink: dbData['downloadLink'] as String?,
+      architecturePatterns: dbData['architecturePatterns']?.toString(),
+      uml: dbData['uml']?.toString(),
+      prototypeLink: dbData['prototypeLink']?.toString(),
+      downloadLink: dbData['downloadLink']?.toString(),
       status: _parseProjectStatus(dbData['status']),
       resources: _parseStringList(dbData['resources']),
       prerequisites: _parseStringList(dbData['prerequisites']),
-      powerpointLink: dbData['powerpointLink'] as String?,
-      reportLink: dbData['reportLink'] as String?,
-      state: dbData['state'] as String? ?? 'enCours',
+      powerpointLink: dbData['powerpointLink']?.toString(),
+      reportLink: dbData['reportLink']?.toString(),
+      state: dbData['state']?.toString() ?? 'enCours',
       grade: dbData['grade']?.toString(),
-      lecturerComment: dbData['lecturerComment'] as String?,
-      likesCount: dbData['likesCount'] as int? ?? 0,
-      commentsCount: dbData['commentsCount'] as int? ?? 0,
-      createdAt: dbData['createdAt'] as String?,
-      updatedAt: dbData['updatedAt'] as String?,
+      lecturerComment: dbData['lecturerComment']?.toString(),
+      likesCount: _parseInt(dbData['likesCount']) ?? 0,
+      commentsCount: _parseInt(dbData['commentsCount']) ?? 0,
+      createdAt: dbData['createdAt']?.toString(),
+      updatedAt: dbData['updatedAt']?.toString(),
     );
   }
 
@@ -258,3 +258,11 @@ class Project {
     );
   }
 }
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
+  }

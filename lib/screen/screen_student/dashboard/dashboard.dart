@@ -4,13 +4,14 @@ import 'package:campuswork/auth/auth_service.dart';
 import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/services/notification_services.dart';
 import 'package:campuswork/model/student.dart';
+import 'package:campuswork/model/user.dart';
 import 'package:campuswork/components/components.dart';
 import 'package:campuswork/screen/groups/groups_list.dart';
 import 'package:campuswork/screen/collaboration/collaboration_requests_page.dart';
 import 'package:campuswork/theme/theme.dart';
 import 'package:campuswork/widgets/sync_test_widget.dart';
 import 'package:campuswork/utils/responsive_helper.dart';
-import 'package:campuswork/widgets/app_logo.dart';
+import 'package:campuswork/components/app_logo.dart';
 
 
 class StudentDashboard extends StatefulWidget {
@@ -22,7 +23,7 @@ class StudentDashboard extends StatefulWidget {
 
 class _StudentDashboardState extends State<StudentDashboard> 
     with TickerProviderStateMixin {
-  late Student _student;
+  late User _student;
   late AnimationController _animController;
   late AnimationController _headerAnimController;
   late AnimationController _cardAnimController;
@@ -39,7 +40,7 @@ class _StudentDashboardState extends State<StudentDashboard>
   void initState() {
     super.initState();
     final currentUser = AuthService().currentUser;
-    if (currentUser is Student) {
+    if (currentUser != null && currentUser.userRole == UserRole.student) {
       _student = currentUser;
     } else {
       // Handle case where user is not a Student
@@ -117,6 +118,21 @@ class _StudentDashboardState extends State<StudentDashboard>
     _animController.forward();
     await Future.delayed(const Duration(milliseconds: 200));
     _cardAnimController.forward();
+  }
+
+  // Méthode utilitaire pour obtenir les informations d'étudiant de manière sûre
+  String _getStudentInfo() {
+    // Si on a accès aux informations spécifiques d'étudiant, on les utilise
+    // Sinon, on retourne une valeur par défaut
+    try {
+      if (_student is Student) {
+        final student = _student as Student;
+        return '${student.level} • ${student.filiere}';
+      }
+    } catch (e) {
+      debugPrint('Erreur lors de l\'accès aux informations étudiant: $e');
+    }
+    return 'Étudiant • Informatique';
   }
 
   @override
@@ -427,7 +443,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '${_student.level} • ${_student.filiere}',
+                                  _getStudentInfo(),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,

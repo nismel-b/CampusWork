@@ -10,7 +10,7 @@ import 'package:campuswork/database/database_helper.dart';
 import 'package:campuswork/auth/auth_service.dart';
 import 'package:campuswork/model/user.dart';
 
-class ProjectService {
+class ProjectService extends ChangeNotifier {
   static final ProjectService _instance = ProjectService._internal();
   factory ProjectService() => _instance;
   ProjectService._internal();
@@ -284,9 +284,6 @@ class ProjectService {
       debugPrint('   - User ID: ${project.userId}');
       debugPrint('   - Course: ${project.courseName}');
       
-      // Recharger les données les plus récentes avant d'ajouter
-      await refreshProjects();
-      
       // Sauvegarder directement dans la base de données
       await _saveProjectToDatabase(project);
       
@@ -296,8 +293,14 @@ class ProjectService {
       // Synchroniser avec les autres systèmes
       await _syncService.saveGlobalData('projects', _projects.map((p) => p.toJson()).toList());
       
+      // Forcer le rechargement des données pour s'assurer de la cohérence
+      await refreshProjects();
+      
       debugPrint('✅ Project created successfully in database');
       debugPrint('   - Total projects now: ${_projects.length}');
+      
+      // Notifier les listeners du changement
+      notifyListeners();
       
       return true;
     } catch (e) {

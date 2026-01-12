@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:campuswork/auth/auth_service.dart';
 import 'package:campuswork/services/project_service.dart';
 import 'package:campuswork/model/project.dart';
 import 'package:campuswork/theme/theme.dart';
+import 'package:campuswork/components/animated_button.dart';
 import 'package:image_picker/image_picker.dart';
 
 
@@ -196,10 +198,19 @@ class _CreateProjectPageState extends State<CreateProjectPage>
 
     if (success) {
       debugPrint('✅ Project creation successful, showing success dialog');
-      _showSuccessDialog();
+      // Ajouter un feedback haptique
+      if (mounted) {
+        // Vibration légère pour confirmer le succès
+        HapticFeedback.lightImpact();
+        _showSuccessDialog();
+      }
     } else {
       debugPrint('❌ Project creation failed');
-      _showErrorSnackBar('Erreur lors de la création du projet');
+      if (mounted) {
+        // Vibration d'erreur
+        HapticFeedback.heavyImpact();
+        _showErrorSnackBar('Erreur lors de la création du projet. Veuillez réessayer.');
+      }
     }
   }
 

@@ -13,7 +13,7 @@ import 'package:campuswork/screen/screen_student/dashboard/surveys_screen.dart';
 import 'package:campuswork/widgets/sync_test_widget.dart';
 import 'package:campuswork/services/tutorial_service.dart';
 import 'package:campuswork/auth/register_page.dart';
-import 'package:campuswork/widgets/app_logo.dart';
+import 'package:campuswork/components/app_logo.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -32,22 +32,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void initState() {
     super.initState();
     _admin = AuthService().currentUser!;
-    _loadPendingUsers();
-    _loadUnreadCount();
+    _loadData();
   }
 
-  void _loadUnreadCount() {
-    final count = NotificationService().getUnreadCountByUser(_admin.userId);
-    setState(() => _unreadNotifications = count);
-  }
-
-  Future<void> _loadPendingUsers() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final users = await AuthService().getPendingUsers();
-    setState(() {
-      _pendingUsers = users;
-      _isLoading = false;
-    });
+    
+    try {
+      // Charger les utilisateurs en attente
+      final users = await AuthService().getPendingUsers();
+      
+      // Charger le nombre de notifications non lues
+      final count = NotificationService().getUnreadCountByUser(_admin.userId);
+      
+      setState(() {
+        _pendingUsers = users;
+        _unreadNotifications = count;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des données admin: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _approveUser(User user) async {
@@ -61,7 +67,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             backgroundColor: Colors.green,
           ),
         );
-        _loadPendingUsers();
+        _loadData();
       }
     }
   }
@@ -97,7 +103,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               backgroundColor: Colors.red,
             ),
           );
-          _loadPendingUsers();
+          _loadData();
         }
       }
     }
@@ -124,395 +130,372 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final allProjects = ProjectService().getAllProjects();
-    final courses = ProjectService().getAllCourses();
-
     return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
-                ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+      appBar: AppBar(
+        title: const Text('Administration'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Bonjour, ${_admin.firstName} 👋',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Administrateur système',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.pending,
-                        title: 'En attente',
-                        value: '${_pendingUsers.length}',
-                        color: Colors.orange,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.folder,
-                        title: 'Projets',
-                        value: '${allProjects.length}',
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: OutlinedButton.icon(
-                  onPressed: () => context.push('/projects'),
-                  icon: const Icon(Icons.search),
-                  label: const Text('Explorer tous les projets'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Section Actions Administrateur
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Actions administrateur',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // Responsive grid based on screen width
-                    int crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
-                    double childAspectRatio = constraints.maxWidth > 600 ? 1.3 : 1.2;
+                    // En-tête de bienvenue
+                    _buildWelcomeHeader(),
+                    const SizedBox(height: 24),
                     
-                    return GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: childAspectRatio,
-                      children: [
-                    _buildActionCard(
-                      icon: Icons.people,
-                      title: 'Gestion utilisateurs',
-                      subtitle: 'Approuver/Rejeter',
-                      color: Colors.blue,
-                      onTap: () => _showUserManagement(),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.folder,
-                      title: 'Tous les projets',
-                      subtitle: 'Consulter/Modérer',
-                      color: Colors.green,
-                      onTap: () => context.push('/projects'),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.group,
-                      title: 'Gestion groupes',
-                      subtitle: 'Créer/Gérer',
-                      color: Colors.purple,
-                      onTap: () => _showGroupsManagement(),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.analytics,
-                      title: 'Statistiques',
-                      subtitle: 'Rapports système',
-                      color: Colors.orange,
-                      onTap: () => _showStatistics(),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.security,
-                      title: 'Similarité',
-                      subtitle: 'Détection plagiat',
-                      color: Colors.red,
-                      onTap: () => _showSimilarityCheck(),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.poll,
-                      title: 'Sondages',
-                      subtitle: 'Créer/Gérer',
-                      color: Colors.teal,
-                      onTap: () => _showSurveyManagement(),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.person_add,
-                      title: 'Ajouter utilisateur',
-                      subtitle: 'Enregistrer nouveau',
-                      color: Colors.indigo,
-                      onTap: () => _showUserRegistration(),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.sync,
-                      title: 'Test Sync',
-                      subtitle: 'Tester synchronisation',
-                      color: Colors.cyan,
-                      onTap: () => _showSyncTest(),
-                    ),
-                    _buildActionCard(
-                      icon: Icons.refresh,
-                      title: 'Reset Tutoriels',
-                      subtitle: 'Réinitialiser tutoriels',
-                      color: Colors.amber,
-                      onTap: () => _resetTutorials(),
-                    ),
-                      ],
-                    );
-                  },
+                    // Statistiques rapides
+                    _buildQuickStats(),
+                    const SizedBox(height: 24),
+                    
+                    // Actions administrateur
+                    _buildAdminActions(),
+                    const SizedBox(height: 24),
+                    
+                    // Demandes d'inscription
+                    _buildPendingUsers(),
+                    const SizedBox(height: 24),
+                    
+                    // Statistiques détaillées
+                    _buildDetailedStats(),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
+            ),
+    );
+  }
 
-              // Section Gestion des Groupes
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Gestion des groupes',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    CreateGroupIconButton(
-                      currentUser: _admin,
-                      onGroupCreated: () {
-                        // Actualiser les données si nécessaire
-                      },
-                    ),
-                  ],
-                ),
+  Widget _buildWelcomeHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).colorScheme.primary,
+            Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Bonjour, ${_admin.firstName} 👋',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Administrateur système',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickStats() {
+    final allProjects = ProjectService().getAllProjects();
+    final allGroups = GroupService().getAllGroups();
+    
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(
+            icon: Icons.pending,
+            title: 'En attente',
+            value: '${_pendingUsers.length}',
+            color: Colors.orange,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.folder,
+            title: 'Projets',
+            value: '${allProjects.length}',
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _StatCard(
+            icon: Icons.group,
+            title: 'Groupes',
+            value: '${allGroups.length}',
+            color: Colors.purple,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdminActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Actions administrateur',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 1.2,
+          children: [
+            _buildActionCard(
+              icon: Icons.people,
+              title: 'Gestion utilisateurs',
+              subtitle: 'Approuver/Rejeter',
+              color: Colors.blue,
+              onTap: () => _showUserManagement(),
+            ),
+            _buildActionCard(
+              icon: Icons.folder,
+              title: 'Tous les projets',
+              subtitle: 'Consulter/Modérer',
+              color: Colors.green,
+              onTap: () => context.push('/projects'),
+            ),
+            _buildActionCard(
+              icon: Icons.group,
+              title: 'Gestion groupes',
+              subtitle: 'Créer/Gérer',
+              color: Colors.purple,
+              onTap: () => _showGroupsManagement(),
+            ),
+            _buildActionCard(
+              icon: Icons.analytics,
+              title: 'Statistiques',
+              subtitle: 'Rapports système',
+              color: Colors.orange,
+              onTap: () => _showStatistics(),
+            ),
+            _buildActionCard(
+              icon: Icons.person_add,
+              title: 'Ajouter utilisateur',
+              subtitle: 'Enregistrer nouveau',
+              color: Colors.indigo,
+              onTap: () => _showUserRegistration(),
+            ),
+            _buildActionCard(
+              icon: Icons.refresh,
+              title: 'Reset Tutoriels',
+              subtitle: 'Réinitialiser tutoriels',
+              color: Colors.amber,
+              onTap: () => _resetTutorials(),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPendingUsers() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Demandes d\'inscription',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.group,
-                        title: 'Groupes totaux',
-                        value: '${GroupService().getAllGroups().length}',
-                        color: Colors.purple,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.group_add,
-                        title: 'Groupes ouverts',
-                        value: '${GroupService().getOpenGroups().length}',
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
+            ),
+            if (_pendingUsers.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: OutlinedButton.icon(
-                  onPressed: () => _showGroupsManagement(),
-                  icon: const Icon(Icons.manage_accounts),
-                  label: const Text('Gérer tous les groupes'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
+                child: Text(
+                  '${_pendingUsers.length}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Demandes d\'inscription',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    if (_pendingUsers.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${_pendingUsers.length}',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Colors.orange,
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (_pendingUsers.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 48,
+                  color: Colors.green,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Aucune demande en attente',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Toutes les demandes ont été traitées',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.green.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...(_pendingUsers.map((user) => Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  UserAvatar(
+                    userId: user.userId,
+                    name: user.fullName, 
+                    size: 48,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.fullName,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (_isLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else if (_pendingUsers.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 64,
-                          color: Colors.green.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 4),
                         Text(
-                          'Aucune demande en attente',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          user.email,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                ..._pendingUsers.map((user) => Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        UserAvatar(
-                          userId: user.userId,
-                          name: user.fullName, 
-                          size: 48,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.fullName,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                user.email,
-                                style: Theme.of(context).textTheme.bodySmall,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  user.userRole.name.toUpperCase(),
-                                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            user.userRole.name.toUpperCase(),
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => _approveUser(user),
-                          icon: const Icon(Icons.check_circle, color: Colors.green),
-                          tooltip: 'Approuver',
-                        ),
-                        IconButton(
-                          onPressed: () => _rejectUser(user),
-                          icon: const Icon(Icons.cancel, color: Colors.red),
-                          tooltip: 'Rejeter',
-                        ),
                       ],
                     ),
                   ),
-                )),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Statistiques',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+                  IconButton(
+                    onPressed: () => _approveUser(user),
+                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                    tooltip: 'Approuver',
+                  ),
+                  IconButton(
+                    onPressed: () => _rejectUser(user),
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    tooltip: 'Rejeter',
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
+            ),
+          ))),
+      ],
+    );
+  }
+
+  Widget _buildDetailedStats() {
+    final allProjects = ProjectService().getAllProjects();
+    final courses = ProjectService().getAllCourses();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Statistiques détaillées',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
                   'Cours disponibles: ${courses.length}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: courses.map((course) => Chip(
-                    label: Text(course),
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                  )).toList(),
-                ),
-              ),
-              const SizedBox(height: 24),
-                    ],
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            );
-          },
+                const SizedBox(height: 12),
+                if (courses.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: courses.map((course) => Chip(
+                      label: Text(course),
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                    )).toList(),
+                  )
+                else
+                  Text(
+                    'Aucun cours disponible',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -703,7 +686,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     ).then((_) {
       // Recharger les utilisateurs en attente après l'enregistrement
-      _loadPendingUsers();
+      _loadData();
     });
   }
 

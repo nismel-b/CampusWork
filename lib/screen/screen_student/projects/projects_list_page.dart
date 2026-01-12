@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:campuswork/model/user.dart';
 import 'package:campuswork/model/project.dart';
 import 'package:campuswork/components/components.dart';
+import 'package:campuswork/components/animated_button.dart';
 import 'package:campuswork/services/project_service.dart';
 
 
@@ -35,8 +36,11 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
     try {
       debugPrint('🔵 Loading projects for user: ${widget.currentUser.userId}');
       
+      // Rafraîchir les données depuis la base
+      await _projectService.refreshProjects();
+      
       // Le service retourne directement List<Project>, pas Future<List<Map>>
-      final projects = ProjectService().getProjectsByStudent(widget.currentUser.userId);
+      final projects = _projectService.getProjectsByStudent(widget.currentUser.userId);
       
       debugPrint('✅ Loaded ${projects.length} projects');
       for (var project in projects) {
@@ -99,22 +103,24 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
       ),
       body: _isLoading
           ? const LoadingState(message: 'Chargement des projets...')
-          : Column(
-              children: [
-                // Search and Filter Section
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Search Bar
-                      TextField(
-                        onChanged: (value) {
-                          setState(() => _searchQuery = value);
-                          _filterProjects();
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Rechercher un projet...',
-                          prefixIcon: const Icon(Icons.search),
+          : RefreshIndicator(
+              onRefresh: _loadProjects,
+              child: Column(
+                children: [
+                  // Search and Filter Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        // Search Bar
+                        TextField(
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                            _filterProjects();
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher un projet...',
+                            prefixIcon: const Icon(Icons.search),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -176,38 +182,36 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
                 Expanded(
                   child: _filteredProjects.isEmpty
                       ? _buildEmptyState()
-                      : RefreshIndicator(
-                          onRefresh: _loadProjects,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemCount: _filteredProjects.length,
-                            itemBuilder: (context, index) {
-                              final project = _filteredProjects[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: ProjectCard(
-                                  title: project.projectName,
-                                  description: project.description,
-                                  imageUrl: project.imageUrl,
-                                  tags: [
-                                    if (project.category != null && project.category!.isNotEmpty) project.category!,
-                                    if (project.state.isNotEmpty) project.state,
-                                    if (project.grade != null && project.grade!.isNotEmpty) 'Note: ${project.grade}',
-                                  ],
-                                  onTap: () => _openProjectDetail(project),
-                                  footer: _buildProjectFooter(project),
-                                ),
-                              );
-                            },
-                          ),
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _filteredProjects.length,
+                          itemBuilder: (context, index) {
+                            final project = _filteredProjects[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: ProjectCard(
+                                title: project.projectName,
+                                description: project.description,
+                                imageUrl: project.imageUrl,
+                                tags: [
+                                  if (project.category != null && project.category!.isNotEmpty) project.category!,
+                                  if (project.state.isNotEmpty) project.state,
+                                  if (project.grade != null && project.grade!.isNotEmpty) 'Note: ${project.grade}',
+                                ],
+                                onTap: () => _openProjectDetail(project),
+                                footer: _buildProjectFooter(project),
+                              ),
+                            );
+                          },
                         ),
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
+          ),
+      floatingActionButton: AnimatedFloatingActionButton(
         onPressed: _createProject,
         icon: const Icon(Icons.add),
-        label: const Text('Nouveau Projet'),
+        label: 'Nouveau Projet',
       ),
     );
   }
