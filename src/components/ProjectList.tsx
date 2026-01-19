@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Project, ProjectStatus, UserRole } from '../types';
+import { Project, ProjectStatus, UserRole } from '../../types';
 import { ICONS } from '../constants';
 
 interface ProjectListProps {

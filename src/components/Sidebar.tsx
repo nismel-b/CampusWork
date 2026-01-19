@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { ICONS } from '../constants';
-import { View, UserRole } from '../types';
+import { View, UserRole } from '../../types';
+import logo from '../assets/logo.png';
 
 interface SidebarProps {
   currentView: View;
@@ -24,12 +25,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, role, isCollaps
     <div className={`${isCollapsed ? 'w-24' : 'w-72'} bg-[#1e40af] h-screen text-white flex flex-col fixed left-0 top-0 shadow-2xl z-20 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]`}>
       <div className={`p-8 flex flex-col items-center gap-4 border-b border-blue-400/20`}>
         <div className="flex items-center gap-3">
-          <div className="bg-white p-2 rounded-2xl shadow-lg flex-shrink-0 transform hover:rotate-12 transition-transform">
-            <svg className="w-8 h-8 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+          {/*<div className="bg-white p-2 rounded-2xl shadow-lg flex-shrink-0 transform hover:rotate-12 transition-transform">*/}
+
+            {/*<svg className="w-8 h-8 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 4.804A7.993 7.993 0 002 12a5 5 0 005 5 5 5 0 005-5V4.804z" />
               <path fillRule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-7a7 7 0 00-7 7 7 7 0 1114 0 7 7 0 00-7-7z" clipRule="evenodd" />
-            </svg>
-          </div>
+            </svg>*/}
+            <div className="bg-white w-24 h-24 rounded-[2rem] shadow-2xl flex items-center justify-center overflow-hidden mb-8">
+            <img src={logo} alt="Logo CampusWork" className="w-full h-full object-contain p-1" />
+            </div>
           {!isCollapsed && (
             <div className="flex flex-col">
               <h1 className="text-xl font-black tracking-tighter leading-none">CAMPUS</h1>

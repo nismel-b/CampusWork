@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { UserRole } from '../types';
+import { UserRole } from '../../types';
 
 interface StatCardProps {
   label: string;

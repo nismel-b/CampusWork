@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Post, UserRole, PostCategory } from '../types';
+import { Post, UserRole, PostCategory } from '../../types';
 import { ICONS } from '../constants';
 
 interface DiscussionBoardProps {

@@ -305,7 +305,7 @@ export default MediaUploader;*/
 
 // src/components/MediaUploader.tsx
 import React, { useState } from 'react';
-import { apiGateway } from '../api/gateway-supabase'; // 🆕 Nouveau gateway
+import { apiGateway } from '../../api/gateway-supabase'; // 🆕 Nouveau gateway
 
 interface MediaUploaderProps {
   type: 'image' | 'video';

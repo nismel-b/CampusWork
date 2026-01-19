@@ -246,6 +246,7 @@ export const apiGateway = {
         }
       },
 
+
       /**
        * Sauvegarde ou met à jour un post
        */

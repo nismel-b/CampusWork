@@ -3,18 +3,21 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import DashboardStats from './components/DashboardStats';
+import logo from './assets/logo.png';
 import ProjectList from './components/ProjectList';
 import AdminPanel from './components/AdminPanel';
 import DiscussionBoard from './components/DiscussionBoard';
-import { User, Project, UserRole, View, Post, ProjectStatus, Language, PostCategory, Comment, Review, LetterGrade } from './types';
-//import { INITIAL_USERS, INITIAL_PROJECTS, INITIAL_POSTS } from './mockData';
+import { User, Project, UserRole, View, Post, ProjectStatus, Language, PostCategory, Comment, Review, LetterGrade } from '../types';
 import PDFPreviewModal from './components/PDFPreviewModal';
 import { ICONS } from './constants';
-import { translations } from './translations';
-import { apiGateway } from './api/gateway-supabase';
+import { translations } from '../translations';
+import { apiGateway } from '../api/gateway-supabase';
 import MediaUploader from './components/MediaUploader';
 import FileUploader from './components/FileUploader';
 import TechTagsInput from './components/TechTagsInput';
+import { NotificationHelpers, useNotifications } from './components/NotificationSystem';
+import NotificationPanel from './components/NotificationsPanel';
+//import { relative } from 'path';
 
 const LETTER_GRADES: LetterGrade[] = ['A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'];
 
@@ -62,6 +65,17 @@ const App: React.FC = () => {
   // Settings / Profile Form State
   const [profileForm, setProfileForm] = useState<Partial<User>>({});
   const [pdfPreview, setPdfPreview] = useState<{url: string; name: string} | null>(null);
+
+  // 🔔 Hook de notifications
+  const {
+    notifications,
+    unreadCount,
+    addNotification,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll
+  } = useNotifications(currentUser);
 
   const t = translations[language];
 
@@ -194,6 +208,16 @@ const App: React.FC = () => {
       const hasLiked = likedBy.includes(currentUser.id);
       const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
       const updatedPost = { ...p, likedBy: newLikedBy, likes: hasLiked ? Math.max(0, p.likes - 1) : p.likes + 1 };
+      // 🔔 NOTIFICATION: Quelqu'un like votre post
+      if (!hasLiked && p.authorId !== currentUser.id) {
+        addNotification(
+          NotificationHelpers.createPostLike(
+            p.authorId,
+            currentUser.name,
+            p.title,
+            p.id
+          )
+        );}
       if (selectedPost && selectedPost.id === postId) setSelectedPost(updatedPost);
       return updatedPost;
     }));
@@ -206,6 +230,17 @@ const App: React.FC = () => {
       const likedBy = p.likedBy || [];
       const hasLiked = likedBy.includes(currentUser.id);
       const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
+      // 🔔 NOTIFICATION: Quelqu'un like votre projet
+      if (!hasLiked && p.authorId !== currentUser.id) {
+        addNotification(
+          NotificationHelpers.createProjectLike(
+            p.authorId,
+            currentUser.name,
+            p.title,
+            p.id
+          )
+        );
+      }
       return { ...p, likedBy: newLikedBy, likes: hasLiked ? Math.max(0, (p.likes || 0) - 1) : (p.likes || 0) + 1 };
     }));
   };
@@ -264,6 +299,19 @@ const App: React.FC = () => {
 
   const handleDeletePost = (postId: string) => {
     if (window.confirm("Voulez-vous vraiment supprimer ce post ?")) {
+       
+      const post = posts.find(p => p.id === postId);
+    
+    // 🔔 NOTIFICATION: Post supprimé (si admin supprime le post d'un autre)
+    if (post && currentUser && post.authorId !== currentUser.id) {
+      addNotification(
+        NotificationHelpers.createPostDeleted(
+          post.authorId,
+          post.title
+        )
+      );
+    }
+
       setPosts(prev => prev.filter(p => p.id !== postId));
       if (selectedPost?.id === postId) {
         setView('posts');
@@ -289,6 +337,18 @@ const App: React.FC = () => {
     const updateComments = (comments: Comment[]): Comment[] => {
       if (replyingTo) {
         return comments.map(c => {
+          // 🔔 NOTIFICATION: Réponse à un commentaire
+            if (c.authorId !== currentUser.id) {
+              addNotification(
+                NotificationHelpers.createCommentReply(
+                  c.authorId,
+                  currentUser.name,
+                  selectedPost.title,
+                  selectedPost.id
+                )
+              );
+            }
+
           if (c.id === replyingTo.commentId) {
             return { ...c, replies: [...(c.replies || []), newComment] };
           }
@@ -301,6 +361,18 @@ const App: React.FC = () => {
 
     const updatedReplies = updateComments(selectedPost.replies || []);
     const updatedPost = { ...selectedPost, replies: updatedReplies, comments: selectedPost.comments + 1 };
+    // 🔔 NOTIFICATION: Nouveau commentaire sur votre post
+    if (!replyingTo && selectedPost.authorId !== currentUser.id) {
+      addNotification(
+        NotificationHelpers.createPostReply(
+          selectedPost.authorId,
+          currentUser.name,
+          selectedPost.title,
+          selectedPost.id
+        )
+      );
+    }
+    
     
     setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
     setSelectedPost(updatedPost);
@@ -364,14 +436,17 @@ const App: React.FC = () => {
           const likedBy = c.likedBy || [];
           const hasLiked = likedBy.includes(currentUser.id);
           const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
+          
           return { ...c, likedBy: newLikedBy, likes: hasLiked ? Math.max(0, (c.likes || 0) - 1) : (c.likes || 0) + 1 };
         }
         if (c.replies) return { ...c, replies: likeRecursive(c.replies) };
         return c;
       });
+      
     };
 
     const updatedReplies = likeRecursive(selectedPost.replies || []);
+     
     const updatedPost = { ...selectedPost, replies: updatedReplies };
     
     setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
@@ -385,6 +460,24 @@ const App: React.FC = () => {
       if (editingProject.id) {
         setProjects(prev => prev.map(p => p.id === savedProject.id ? savedProject : p));
       } else {
+
+        // 🔔 NOTIFICATION: Nouveau projet (pour enseignants et admins)
+        users
+          .filter(u => 
+            (u.role === UserRole.LECTURER || u.role === UserRole.ADMIN) && 
+            u.id !== currentUser.id
+          )
+          .forEach(u => {
+            addNotification(
+              NotificationHelpers.createNewProject(
+                u.id,
+                currentUser.name,
+                savedProject.title,
+                savedProject.id
+              )
+            );
+          });
+        
         setProjects(prev => [savedProject, ...prev]);
       }
       setView('projects');
@@ -418,14 +511,42 @@ const App: React.FC = () => {
       comment: newReview.comment,
       createdAt: new Date().toLocaleDateString()
     };
+
+    const grade = calculateLetterGrade(newReview.rating);
     const updatedProject = {
       ...consultingProject,
       reviews: [...(consultingProject.reviews || []), review],
-      isEvaluated: true 
+      isEvaluated: true, 
+      grade
     };
+
+    // 🔔 NOTIFICATION: Évaluation de projet
+    if (consultingProject.authorId !== currentUser.id) {
+      addNotification(
+        NotificationHelpers.createProjectEvaluation(
+          consultingProject.authorId,
+          currentUser.name,
+          consultingProject.title,
+          grade,
+          consultingProject.id
+        )
+      );
+    }
+
     setProjects(prev => prev.map(p => p.id === consultingProject.id ? updatedProject : p));
     setConsultingProject(updatedProject);
     setNewReview({ rating: 0, comment: '' });
+  };
+  // Helper pour convertir note sur 20 en lettre
+  const calculateLetterGrade = (rating: number): LetterGrade => {
+    if (rating >= 18) return 'A';
+    if (rating >= 16) return 'B+';
+    if (rating >= 14) return 'B';
+    if (rating >= 12) return 'C+';
+    if (rating >= 10) return 'C';
+    if (rating >= 8) return 'D+';
+    if (rating >= 6) return 'D';
+    return 'F';
   };
 
   const handleConsult = (project: Project) => {
@@ -461,6 +582,24 @@ const App: React.FC = () => {
       technologies: []
     });
     setView('project_edit');
+  };
+
+  // ✅ Handler pour cliquer sur une notification
+  const handleNotificationClick = (notification: any) => {
+    // Rediriger selon le type
+    if (notification.link?.includes('/discussion/')) {
+      const post = posts.find(p => p.id === notification.relatedId);
+      if (post) {
+        setSelectedPost(post);
+        setView('discussion_detail');
+      }
+    } else if (notification.link?.includes('/project/')) {
+      const project = projects.find(p => p.id === notification.relatedId);
+      if (project) {
+        setConsultingProject(project);
+        setView('project_detail');
+      }
+    }
   };
 
   const authorData = useMemo(() => {
@@ -529,13 +668,15 @@ const App: React.FC = () => {
   );
 
   if (!currentUser) return (
+
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6 selection:bg-blue-100 selection:text-blue-900 overflow-hidden relative">
+      {/* Arrière-plan décoratif */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full"></div>
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-blue-900/40 blur-[120px] rounded-full"></div>
         <div className="absolute top-[20%] right-[10%] w-[15%] h-[15%] bg-purple-600/10 blur-[80px] rounded-full"></div>
       </div>
-
+        {/* Panneau gauche - Branding */}
       <div className="w-full max-w-5xl z-10 grid grid-cols-1 lg:grid-cols-2 gap-0 shadow-[0_35px_100px_-15px_rgba(0,0,0,0.6)] rounded-[4rem] overflow-hidden bg-white/5 backdrop-blur-sm border border-white/10 animate-fadeIn">
         <div className="hidden lg:flex flex-col justify-center p-16 bg-[#1e40af] text-white relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
@@ -543,11 +684,12 @@ const App: React.FC = () => {
             <div className="absolute bottom-20 right-10 w-40 h-40 border-8 border-white/30 rounded-[3rem] rotate-12"></div>
           </div>
           <div className="relative z-10 space-y-8">
-            <div className="bg-white p-4 w-20 h-20 rounded-[2rem] shadow-2xl flex items-center justify-center">
-              <svg className="w-12 h-12 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+            <div className="bg-white w-24 h-24 rounded-[2rem] shadow-2xl flex items-center justify-center overflow-hidden mb-8">
+              {/*<svg className="w-12 h-12 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 4.804A7.993 7.993 0 002 12a5 5 0 005 5 5 5 0 005-5V4.804z" />
                 <path fillRule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-7a7 7 0 00-7 7 7 7 0 1114 0 7 7 0 00-7-7z" clipRule="evenodd" />
-              </svg>
+              </svg>*/}
+              <img src={logo} alt="Logo CampusWork" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-6xl font-black tracking-tighter italic uppercase leading-none mb-2">Campus<br/>Work</h1>
@@ -659,29 +801,44 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
-              <div className="space-y-2">
+
+              <div className="relative">
+                <div className="flex center items-center px-4 space-y-2">
+                 {/* <div className="flex justify-between items-center px-4">*/}
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Mot de passe</label>
-                <input type="password" value={signupData.password} onChange={e => setSignupData({...signupData, password: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="••••••••" />
-                {/* showSignupPassword logic */}
-                <button
-                  type="button"
-                  onClick={() => setShowSignupPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-6 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showSignupPassword ? (
+                  <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none text-slate-400">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-          
-                {/* ShowSignupPassword end */}
-              </div>
+                  </div>
+                  </div>
+                  <input 
+                    type={showSignupPassword ? "text" : "password"} 
+                    value={signupData.password} 
+                    onChange={e => setSignupData(e.target.value)} 
+                    className="w-full pl-14 pr-14 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm" 
+                    placeholder="••••••••" 
+                  />
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                    className="absolute inset-y-0 right-0 pr-6 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showSignupPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              
+              
               
               <div className="pt-4 space-y-4">
                 <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all">Valider mon inscription</button>
@@ -713,7 +870,25 @@ const App: React.FC = () => {
     <div className="flex bg-[#f8fafc] min-h-screen selection:bg-blue-100 selection:text-blue-900">
       <Sidebar currentView={view} setView={setView} role={currentUser.role} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <main className={`flex-1 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isCollapsed ? 'ml-24' : 'ml-72'} min-h-screen flex flex-col`}>
-        <Header user={currentUser} onLogout={() => setCurrentUser(null)} />
+        {/*<Header user={currentUser} onLogout={() => setCurrentUser(null)} />*/}
+        {/* 📝 MODIFIER LE HEADER POUR INCLURE LES NOTIFICATIONS */}
+        <Header 
+          user={currentUser} 
+          onLogout={() => setCurrentUser(null)}
+          
+          /* 🔔 AJOUTER CETTE PROP */
+          notificationPanel={
+            <NotificationPanel
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+              onDelete={deleteNotification}
+              onClearAll={clearAll}
+              onNotificationClick={handleNotificationClick}
+            />
+          }
+        />
         <div className="p-10 max-w-7xl mx-auto w-full flex-1">
           <div className="animate-fadeIn">
             {view === 'dashboard' && (
@@ -927,42 +1102,7 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* 🆕 Section Fichier Annexe */}
-                {/*{consultingProject.attachedFile && (
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-10 rounded-[3.5rem] border-2 border-blue-100 shadow-lg">
-                    <h4 className="font-black text-slate-900 uppercase tracking-tighter italic mb-6 flex items-center gap-3">
-                      <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                      </svg>
-                      Document Annexe
-                    </h4>
-                    <div className="bg-white rounded-2xl p-6 flex items-center gap-4 group hover:shadow-xl transition-all">
-                      <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                        <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-black text-slate-900 text-lg mb-1">{consultingProject.attachedFile.name}</p>
-                        <p className="text-sm text-slate-500 font-medium">
-                          {(consultingProject.attachedFile.size / (1024 * 1024)).toFixed(2)} MB • {consultingProject.attachedFile.type.toUpperCase()}
-                        </p>
-                      </div>
-                      
-                        href={consultingProject.attachedFile.url}
-                        download={consultingProject.attachedFile.name}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg flex items-center gap-2"
-                        <a>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Télécharger
-                      </a>
-                    </div>
-                  </div>
-                )}*/}
+                
 
                 {/* 🆕 Section Fichier Annexe */}
 {consultingProject.attachedFile && (

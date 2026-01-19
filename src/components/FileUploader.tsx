@@ -270,7 +270,7 @@ export default FileUploader;*/
 
 // src/components/FileUploader.tsx
 import React, { useState } from 'react';
-import { apiGateway } from '../api/gateway-supabase'; // 🆕 Nouveau gateway
+import { apiGateway } from '../../api/gateway-supabase'; // 🆕 Nouveau gateway
 
 interface AttachedFile {
   name: string;
