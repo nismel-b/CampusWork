@@ -153,6 +153,63 @@ const App: React.FC = () => {
     }
   };
 
+    // 🔵 BOUTON GOOGLE 
+  /*const handleGoogleLogin = async () => {
+    try {
+      const user = await apiGateway.auth.loginWithGoogle();
+      setCurrentUser(user);
+      
+      // Re-fetch database après connexion Google
+      const [dbProj, dbPosts] = await Promise.all([
+        apiGateway.db.projects.getAll(),
+        apiGateway.db.posts.getAll()
+      ]);
+      setProjects(dbProj);
+      setPosts(dbPosts);
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };*/
+
+  const handleGoogleLogin = async () => {
+    try {
+      const user = await apiGateway.auth.loginWithGoogle();
+      
+      // ✅ Vérifier si l'utilisateur a un rôle défini
+      if (!user.role) {
+        // Demander à l'utilisateur de choisir son rôle
+        const roleChoice = window.confirm(
+          "Êtes-vous un étudiant ?\n\nOK = Étudiant\nAnnuler = Enseignant"
+        );
+        
+        const selectedRole = roleChoice ? UserRole.STUDENT : UserRole.LECTURER;
+        
+        // Mettre à jour le rôle dans la base de données
+        const updatedUser = await apiGateway.db.users.update(user.id, { 
+          role: selectedRole,
+          pending: true // En attente d'approbation admin
+        });
+        
+        setCurrentUser(updatedUser);
+        alert("Compte créé avec succès ! Votre accès est en attente d'approbation par un administrateur.");
+      } else {
+        setCurrentUser(user);
+      }
+      
+      // Re-fetch database après connexion Google
+      const [dbProj, dbPosts, dbUsers] = await Promise.all([
+        apiGateway.db.projects.getAll(),
+        apiGateway.db.posts.getAll(),
+        apiGateway.db.users.getAll()
+      ]);
+      setProjects(dbProj);
+      setPosts(dbPosts);
+      setUsers(dbUsers);
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signupData.name || !signupData.email || !signupData.password) return alert("Veuillez remplir les champs obligatoires.");
@@ -172,7 +229,7 @@ const App: React.FC = () => {
     e.preventDefault();
     try {
       await apiGateway.auth.resetPassword(forgotEmail);
-      alert(`Un lien de réinitialisation a été envoyé à ${forgotEmail} (Simulation).`);
+      alert(`Fonctionalites a venir. Un lien de réinitialisation devrait etre envoyé à ${forgotEmail}.`);
       setAuthMode('login');
     } catch (error: any) {
       alert(error.message);
@@ -200,7 +257,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLike = (postId: string) => {
+  /*const handleLike = (postId: string) => {
     if (!currentUser) return;
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
@@ -221,9 +278,51 @@ const App: React.FC = () => {
       if (selectedPost && selectedPost.id === postId) setSelectedPost(updatedPost);
       return updatedPost;
     }));
+  };*/
+
+  // ✅ LIKE POST AVEC PERSISTANCE
+  const handleLike = async (postId: string) => {
+    if (!currentUser) return;
+    
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    const likedBy = post.likedBy || [];
+    const hasLiked = likedBy.includes(currentUser.id);
+    const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
+    
+    const updatedPost = { 
+      ...post, 
+      likedBy: newLikedBy, 
+      likes: hasLiked ? Math.max(0, post.likes - 1) : post.likes + 1 
+    };
+
+    try {
+      // ✅ Sauvegarder dans Supabase
+      await apiGateway.db.posts.save(updatedPost, currentUser);
+      
+      // Mise à jour UI
+      setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
+      if (selectedPost && selectedPost.id === postId) setSelectedPost(updatedPost);
+
+      // 🔔 Notification uniquement pour l'auteur du post
+      if (!hasLiked && post.authorId !== currentUser.id) {
+        addNotification(
+          NotificationHelpers.createPostLike(
+            post.authorId,
+            currentUser.name,
+            post.title,
+            post.id
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Erreur lors du like:', error);
+      alert('Impossible de liker le post');
+    }
   };
 
-  const handleProjectLike = (projectId: string) => {
+  /*const handleProjectLike = (projectId: string) => {
     if (!currentUser) return;
     setProjects(prev => prev.map(p => {
       if (p.id !== projectId) return p;
@@ -243,6 +342,47 @@ const App: React.FC = () => {
       }
       return { ...p, likedBy: newLikedBy, likes: hasLiked ? Math.max(0, (p.likes || 0) - 1) : (p.likes || 0) + 1 };
     }));
+  };*/
+
+  // ✅ LIKE PROJECT AVEC PERSISTANCE
+  const handleProjectLike = async (projectId: string) => {
+    if (!currentUser) return;
+    
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const likedBy = project.likedBy || [];
+    const hasLiked = likedBy.includes(currentUser.id);
+    const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
+    
+    const updatedProject = { 
+      ...project, 
+      likedBy: newLikedBy, 
+      likes: hasLiked ? Math.max(0, (project.likes || 0) - 1) : (project.likes || 0) + 1 
+    };
+
+    try {
+      // ✅ Sauvegarder dans Supabase
+      await apiGateway.db.projects.save(updatedProject, currentUser);
+      
+      // Mise à jour UI
+      setProjects(prev => prev.map(p => p.id === projectId ? updatedProject : p));
+
+      // 🔔 Notification uniquement pour l'auteur du projet
+      if (!hasLiked && project.authorId !== currentUser.id) {
+        addNotification(
+          NotificationHelpers.createProjectLike(
+            project.authorId,
+            currentUser.name,
+            project.title,
+            project.id
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Erreur lors du like:', error);
+      alert('Impossible de liker le projet');
+    }
   };
 
   const filteredProjects = useMemo(() => {
@@ -297,7 +437,7 @@ const App: React.FC = () => {
     setIsPostModalOpen(true);
   };
 
-  const handleDeletePost = (postId: string) => {
+  /*const handleDeletePost = (postId: string) => {
     if (window.confirm("Voulez-vous vraiment supprimer ce post ?")) {
        
       const post = posts.find(p => p.id === postId);
@@ -318,9 +458,55 @@ const App: React.FC = () => {
         setSelectedPost(null);
       }
     }
+  };*/
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce post ?")) return;
+       
+    const post = posts.find(p => p.id === postId);
+    
+    try {
+      // ✅ Supprimer de Supabase
+      await apiGateway.db.posts.delete(postId);
+      
+      // 🔔 Notification uniquement pour l'auteur si supprimé par admin
+      if (post && currentUser && post.authorId !== currentUser.id) {
+        addNotification(
+          NotificationHelpers.createPostDeleted(
+            post.authorId,
+            post.title
+          )
+        );
+      }
+
+      setPosts(prev => prev.filter(p => p.id !== postId));
+      if (selectedPost?.id === postId) {
+        setView('posts');
+        setSelectedPost(null);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      alert('Impossible de supprimer le post');
+    }
   };
 
-  const handleCommentAction = () => {
+
+  /*const handleCommentAction = () => {
+    if (!commentInput.trim() || !currentUser || !selectedPost) return;
+
+    const newComment: Comment = {
+      id: `comment-${Date.now()}`,
+      authorId: currentUser.id,
+      authorName: currentUser.name,
+      content: commentInput,
+      createdAt: new Date().toLocaleDateString(),
+      likes: 0,
+      likedBy: [],
+      replies: []
+    };*/
+
+    // ✅ COMMENTAIRE AVEC PERSISTANCE
+  const handleCommentAction = async () => {
     if (!commentInput.trim() || !currentUser || !selectedPost) return;
 
     const newComment: Comment = {
@@ -334,7 +520,7 @@ const App: React.FC = () => {
       replies: []
     };
 
-    const updateComments = (comments: Comment[]): Comment[] => {
+    /*const updateComments = (comments: Comment[]): Comment[] => {
       if (replyingTo) {
         return comments.map(c => {
           // 🔔 NOTIFICATION: Réponse à un commentaire
@@ -378,9 +564,9 @@ const App: React.FC = () => {
     setSelectedPost(updatedPost);
     setCommentInput('');
     setReplyingTo(null);
-  };
+  };*/
 
-  const handleEditComment = (commentId: string, content: string) => {
+  /*const handleEditComment = (commentId: string, content: string) => {
     setCommentInput(content);
     setEditingCommentId(commentId);
   };
@@ -425,9 +611,136 @@ const App: React.FC = () => {
     
     setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
     setSelectedPost(updatedPost);
+  };*/
+
+  const updateComments = (comments: Comment[]): Comment[] => {
+      if (replyingTo) {
+        return comments.map(c => {
+          // 🔔 Notification uniquement pour l'auteur du commentaire parent
+          if (c.id === replyingTo.commentId && c.authorId !== currentUser.id) {
+            addNotification(
+              NotificationHelpers.createCommentReply(
+                c.authorId,
+                currentUser.name,
+                selectedPost.title,
+                selectedPost.id
+              )
+            );
+          }
+
+          if (c.id === replyingTo.commentId) {
+            return { ...c, replies: [...(c.replies || []), newComment] };
+          }
+          if (c.replies) return { ...c, replies: updateComments(c.replies) };
+          return c;
+        });
+      }
+      return [...comments, newComment];
+    };
+
+    const updatedReplies = updateComments(selectedPost.replies || []);
+    const updatedPost = { 
+      ...selectedPost, 
+      replies: updatedReplies, 
+      comments: selectedPost.comments + 1 
+    };
+
+    try {
+      // ✅ Sauvegarder dans Supabase
+      await apiGateway.db.posts.save(updatedPost, currentUser);
+
+      // 🔔 Notification uniquement pour l'auteur du post
+      if (!replyingTo && selectedPost.authorId !== currentUser.id) {
+        addNotification(
+          NotificationHelpers.createPostReply(
+            selectedPost.authorId,
+            currentUser.name,
+            selectedPost.title,
+            selectedPost.id
+          )
+        );
+      }
+      
+      setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+      setSelectedPost(updatedPost);
+      setCommentInput('');
+      setReplyingTo(null);
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du commentaire:', error);
+      alert('Impossible d\'ajouter le commentaire');
+    }
   };
 
-  const handleLikeComment = (commentId: string) => {
+  const handleEditComment = (commentId: string, content: string) => {
+    setCommentInput(content);
+    setEditingCommentId(commentId);
+  };
+
+  // ✅ EDIT COMMENT AVEC PERSISTANCE
+  const handleUpdateComment = async () => {
+    if (!editingCommentId || !currentUser || !selectedPost) return;
+
+    const updateRecursive = (comments: Comment[]): Comment[] => {
+      return comments.map(c => {
+        if (c.id === editingCommentId) return { ...c, content: commentInput };
+        if (c.replies) return { ...c, replies: updateRecursive(c.replies) };
+        return c;
+      });
+    };
+
+    const updatedReplies = updateRecursive(selectedPost.replies || []);
+    const updatedPost = { ...selectedPost, replies: updatedReplies };
+
+    try {
+      // ✅ Sauvegarder dans Supabase
+      await apiGateway.db.posts.save(updatedPost, currentUser);
+      
+      setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+      setSelectedPost(updatedPost);
+      setCommentInput('');
+      setEditingCommentId(null);
+    } catch (error) {
+      console.error('Erreur lors de la modification:', error);
+      alert('Impossible de modifier le commentaire');
+    }
+  };
+
+  // ✅ DELETE COMMENT AVEC PERSISTANCE
+  const handleDeleteComment = async (commentId: string) => {
+    if (!selectedPost || !window.confirm("Supprimer ce commentaire ?")) return;
+
+    let removedCount = 0;
+    const deleteRecursive = (comments: Comment[]): Comment[] => {
+      return comments.filter(c => {
+        if (c.id === commentId) {
+          removedCount += 1 + (c.replies?.length || 0);
+          return false;
+        }
+        if (c.replies) c.replies = deleteRecursive(c.replies);
+        return true;
+      });
+    };
+
+    const updatedReplies = deleteRecursive(selectedPost.replies || []);
+    const updatedPost = { 
+      ...selectedPost, 
+      replies: updatedReplies, 
+      comments: Math.max(0, selectedPost.comments - removedCount) 
+    };
+
+    try {
+      // ✅ Sauvegarder dans Supabase
+      await apiGateway.db.posts.save(updatedPost, currentUser);
+      
+      setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+      setSelectedPost(updatedPost);
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      alert('Impossible de supprimer le commentaire');
+    }
+  };
+
+  /*const handleLikeComment = (commentId: string) => {
     if (!selectedPost || !currentUser) return;
 
     const likeRecursive = (comments: Comment[]): Comment[] => {
@@ -451,6 +764,77 @@ const App: React.FC = () => {
     
     setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
     setSelectedPost(updatedPost);
+  };*/
+
+  /*const handleSaveProject = async () => {
+    if (!editingProject || !currentUser) return;
+    try {
+      const savedProject = await apiGateway.db.projects.save(editingProject, currentUser);
+      if (editingProject.id) {
+        setProjects(prev => prev.map(p => p.id === savedProject.id ? savedProject : p));
+      } else {
+
+        // 🔔 NOTIFICATION: Nouveau projet (pour enseignants et admins)
+        users
+          .filter(u => 
+            (u.role === UserRole.LECTURER || u.role === UserRole.ADMIN) && 
+            u.id !== currentUser.id
+          )
+          .forEach(u => {
+            addNotification(
+              NotificationHelpers.createNewProject(
+                u.id,
+                currentUser.name,
+                savedProject.title,
+                savedProject.id
+              )
+            );
+          });
+        
+        setProjects(prev => [savedProject, ...prev]);
+      }
+      setView('projects');
+      setEditingProject(null);
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };*/
+
+  // ✅ LIKE COMMENT AVEC PERSISTANCE
+  const handleLikeComment = async (commentId: string) => {
+    if (!selectedPost || !currentUser) return;
+
+    const likeRecursive = (comments: Comment[]): Comment[] => {
+      return comments.map(c => {
+        if (c.id === commentId) {
+          const likedBy = c.likedBy || [];
+          const hasLiked = likedBy.includes(currentUser.id);
+          const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
+          
+          return { 
+            ...c, 
+            likedBy: newLikedBy, 
+            likes: hasLiked ? Math.max(0, (c.likes || 0) - 1) : (c.likes || 0) + 1 
+          };
+        }
+        if (c.replies) return { ...c, replies: likeRecursive(c.replies) };
+        return c;
+      });
+    };
+
+    const updatedReplies = likeRecursive(selectedPost.replies || []);
+    const updatedPost = { ...selectedPost, replies: updatedReplies };
+
+    try {
+      // ✅ Sauvegarder dans Supabase
+      await apiGateway.db.posts.save(updatedPost, currentUser);
+      
+      setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+      setSelectedPost(updatedPost);
+    } catch (error) {
+      console.error('Erreur lors du like:', error);
+      alert('Impossible de liker le commentaire');
+    }
   };
 
   const handleSaveProject = async () => {
@@ -460,8 +844,7 @@ const App: React.FC = () => {
       if (editingProject.id) {
         setProjects(prev => prev.map(p => p.id === savedProject.id ? savedProject : p));
       } else {
-
-        // 🔔 NOTIFICATION: Nouveau projet (pour enseignants et admins)
+        // 🔔 Notification uniquement pour enseignants et admins (sauf auteur)
         users
           .filter(u => 
             (u.role === UserRole.LECTURER || u.role === UserRole.ADMIN) && 
@@ -501,7 +884,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleAddReview = () => {
+  /*const handleAddReview = () => {
     if (!consultingProject || !currentUser || (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.LECTURER)) return;
     const review: Review = {
       id: `rev-${Date.now()}`,
@@ -547,6 +930,64 @@ const App: React.FC = () => {
     if (rating >= 8) return 'D+';
     if (rating >= 6) return 'D';
     return 'F';
+  };*/
+
+  // ✅ ADD REVIEW AVEC PERSISTANCE
+  const handleAddReview = async () => {
+    if (!consultingProject || !currentUser || (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.LECTURER)) return;
+    
+    const review: Review = {
+      id: `rev-${Date.now()}`,
+      authorId: currentUser.id,
+      authorName: currentUser.name,
+      rating: newReview.rating,
+      comment: newReview.comment,
+      createdAt: new Date().toLocaleDateString()
+    };
+
+    const grade = calculateLetterGrade(newReview.rating);
+    const updatedProject = {
+      ...consultingProject,
+      reviews: [...(consultingProject.reviews || []), review],
+      isEvaluated: true, 
+      grade
+    };
+
+    try {
+      // ✅ Sauvegarder dans Supabase
+      await apiGateway.db.projects.save(updatedProject, currentUser);
+
+      // 🔔 Notification uniquement pour l'auteur du projet
+      if (consultingProject.authorId !== currentUser.id) {
+        addNotification(
+          NotificationHelpers.createProjectEvaluation(
+            consultingProject.authorId,
+            currentUser.name,
+            consultingProject.title,
+            grade,
+            consultingProject.id
+          )
+        );
+      }
+
+      setProjects(prev => prev.map(p => p.id === consultingProject.id ? updatedProject : p));
+      setConsultingProject(updatedProject);
+      setNewReview({ rating: 0, comment: '' });
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'évaluation:', error);
+      alert('Impossible d\'ajouter l\'évaluation');
+    }
+  };
+
+  const calculateLetterGrade = (rating: number): LetterGrade => {
+    if (rating >= 18) return 'A';
+    if (rating >= 16) return 'B+';
+    if (rating >= 14) return 'B';
+    if (rating >= 12) return 'C+';
+    if (rating >= 10) return 'C';
+    if (rating >= 8) return 'D+';
+    if (rating >= 6) return 'D';
+    return 'F';
   };
 
   const handleConsult = (project: Project) => {
@@ -583,6 +1024,42 @@ const App: React.FC = () => {
     });
     setView('project_edit');
   };
+
+  // ✅ DELETE PROJECT AVEC PERSISTANCE
+const handleDeleteProject = async (projectId: string) => {
+  if (!window.confirm("Voulez-vous vraiment supprimer ce projet ? Cette action est irréversible.")) return;
+     
+  const project = projects.find(p => p.id === projectId);
+  
+  try {
+    // ✅ Supprimer de Supabase
+    await apiGateway.db.projects.delete(projectId);
+    
+    // 🔔 Notification uniquement pour l'auteur si supprimé par admin
+    if (project && currentUser && project.authorId !== currentUser.id) {
+      addNotification(
+        NotificationHelpers.createProjectDeleted(
+          project.authorId,
+          project.title
+        )
+      );
+    }
+
+    // Mettre à jour l'UI
+    setProjects(prev => prev.filter(p => p.id !== projectId));
+    
+    // Si on est sur la page de détail du projet supprimé, retourner à la liste
+    if (consultingProject?.id === projectId) {
+      setConsultingProject(null);
+      setView('projects');
+    }
+    
+    alert('Projet supprimé avec succès');
+  } catch (error) {
+    console.error('Erreur lors de la suppression:', error);
+    alert('Impossible de supprimer le projet');
+  }
+};
 
   // ✅ Handler pour cliquer sur une notification
   const handleNotificationClick = (notification: any) => {
@@ -717,7 +1194,7 @@ const App: React.FC = () => {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Email Académique</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none text-slate-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" /></svg></div>
-                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full pl-14 pr-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm" placeholder="marie.dubois@school.edu" />
+                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full pl-14 pr-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm" placeholder="name@CampusWork.edu" />
                 </div>
               </div>
               <div className="space-y-2">
@@ -767,6 +1244,32 @@ const App: React.FC = () => {
 
               <div className="pt-4">
                 <button type="submit" className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs shadow-2xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all mb-8">Connexion Immédiate</button>
+                {/* Bouton Google */}
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-full py-4 px-6 bg-white border-2 border-slate-200 rounded-[2rem] font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 shadow-sm group"
+                >
+                  {/* Logo Google SVG */}
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  <span className="font-black text-sm group-hover:text-slate-900 transition-colors">
+                    Se connecter avec Google
+                  </span>
+                </button>
+
                 <div className="text-center"><span className="text-slate-400 font-bold text-sm">Pas encore membre ?</span><button type="button" onClick={() => setAuthMode('signup')} className="text-blue-600 font-black text-sm hover:underline decoration-2 underline-offset-4 ml-1">Créer mon profil</button></div>
               </div>
             </form>
@@ -775,11 +1278,11 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Nom Complet</label>
-                  <input type="text" value={signupData.name} onChange={e => setSignupData({...signupData, name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="Jean Dupont" />
+                  <input type="text" value={signupData.name} onChange={e => setSignupData({...signupData, name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="nom complet" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Email Académique</label>
-                  <input type="email" value={signupData.email} onChange={e => setSignupData({...signupData, email: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="jean@school.edu" />
+                  <input type="email" value={signupData.email} onChange={e => setSignupData({...signupData, email: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="name@CampusWork.edu" />
                 </div>
               </div>
               <div className="space-y-3">
@@ -791,13 +1294,13 @@ const App: React.FC = () => {
               </div>
               {signupData.role === UserRole.STUDENT && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 bg-slate-50 rounded-3xl border border-slate-100 animate-fadeIn">
-                  <div className="space-y-2">
+                  {/*<div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Matricule</label>
                     <input type="text" value={signupData.matricule} onChange={e => setSignupData({...signupData, matricule: e.target.value})} className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="2024XXXX" />
-                  </div>
+                  </div>*/}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Niveau</label>
-                    <input type="text" value={signupData.level} onChange={e => setSignupData({...signupData, level: e.target.value})} className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="Licence 3" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Cycle</label>
+                    <input type="text" value={signupData.level} onChange={e => setSignupData({...signupData, level: e.target.value})} className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="Licence" />
                   </div>
                 </div>
               )}
@@ -851,7 +1354,7 @@ const App: React.FC = () => {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Email Académique</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none text-slate-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" /></svg></div>
-                  <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="w-full pl-14 pr-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm" placeholder="marie.dubois@school.edu" />
+                  <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="w-full pl-14 pr-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm" placeholder="name@CampusWork.edu" />
                 </div>
               </div>
               <div className="pt-4 space-y-4">
@@ -907,7 +1410,7 @@ const App: React.FC = () => {
                         <input type="text" placeholder="Rechercher..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-6 py-3.5 bg-white border border-slate-100 rounded-[1.5rem] shadow-sm outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-300 transition-all font-medium text-sm text-gray-900" />
                       </div>
                     </div>
-                    <ProjectList projects={filteredProjects} role={currentUser.role} onEdit={handleEdit} onConsult={handleConsult} onDelete={(id) => setProjects(prev => prev.filter(p => p.id !== id))} onLike={handleProjectLike} isDashboard={true} currentUser={currentUser} />
+                    <ProjectList projects={filteredProjects} role={currentUser.role} onEdit={handleEdit} onConsult={handleConsult} /*onDelete={(id) => setProjects(prev => prev.filter(p => p.id !== id))} */onDelete={handleDeleteProject} onLike={handleProjectLike} isDashboard={true} currentUser={currentUser} />
                   </div>
                   <div className="space-y-10">
                     <div className="flex items-center justify-between px-2">
@@ -1105,71 +1608,89 @@ const App: React.FC = () => {
                 
 
                 {/* 🆕 Section Fichier Annexe */}
-{consultingProject.attachedFile && (
-  <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-10 rounded-[3.5rem] border-2 border-blue-100 shadow-lg">
-    <h4 className="font-black text-slate-900 uppercase tracking-tighter italic mb-6 flex items-center gap-3">
-      <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-      </svg>
-      Document Annexe
-    </h4>
-    <div className="bg-white rounded-2xl p-6 flex items-center gap-4 group hover:shadow-xl transition-all">
-      <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-        <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-        </svg>
-      </div>
-      <div className="flex-1">
-        <p className="font-black text-slate-900 text-lg mb-1">{consultingProject.attachedFile.name}</p>
-        <p className="text-sm text-slate-500 font-medium">
-          {(consultingProject.attachedFile.size / (1024 * 1024)).toFixed(2)} MB • {consultingProject.attachedFile.type.toUpperCase()}
-        </p>
-      </div>
+                {consultingProject.attachedFile && (
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-10 rounded-[3.5rem] border-2 border-blue-100 shadow-lg">
+                    <h4 className="font-black text-slate-900 uppercase tracking-tighter italic mb-6 flex items-center gap-3">
+                      <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                      </svg>
+                      Document Annexe
+                    </h4>
+                    <div className="bg-white rounded-2xl p-6 flex items-center gap-4 group hover:shadow-xl transition-all">
+                      <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-black text-slate-900 text-lg mb-1">{consultingProject.attachedFile.name}</p>
+                        <p className="text-sm text-slate-500 font-medium">
+                          {(consultingProject.attachedFile.size / (1024 * 1024)).toFixed(2)} MB • {consultingProject.attachedFile.type.toUpperCase()}
+                        </p>
+                      </div>
       
-      {/* 🔥 BOUTONS MODIFIÉS AVEC PRÉVISUALISATION */}
-      <div className="flex gap-3">
-        {/* Bouton Prévisualiser (seulement pour PDF) */}
-        {consultingProject.attachedFile.type === 'application/pdf' && (
-          <button
-            onClick={() => setPdfPreview({
-              url: consultingProject.attachedFile!.url,
-              name: consultingProject.attachedFile!.name
-            })}
-            className="px-6 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-lg flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-            Prévisualiser
-          </button>
-        )}
-        
-        {/* Bouton Télécharger */}
-        <a
-          href={consultingProject.attachedFile.url}
-          download={consultingProject.attachedFile.name}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Télécharger
-        </a>
-      </div>
-    </div>
-  </div>
-)}
+                      {/* 🔥 BOUTONS MODIFIÉS AVEC PRÉVISUALISATION */}
+                      <div className="flex gap-3">
+                        {/* Bouton Prévisualiser (seulement pour PDF) */}
+                        {consultingProject.attachedFile.type === 'application/pdf' && (
+                          <button
+                            onClick={() => setPdfPreview({
+                              url: consultingProject.attachedFile!.url,
+                              name: consultingProject.attachedFile!.name
+                            })}
+                            className="px-6 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-purple-700 transition-all shadow-lg flex items-center gap-2"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Prévisualiser
+                          </button>
+                        )}
+                        
+                        {/* Bouton Télécharger */}
+                        <a
+                          href={consultingProject.attachedFile.url}
+                          download={consultingProject.attachedFile.name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-lg flex items-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Télécharger
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
             
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                   <div className="lg:col-span-2 space-y-12">
                     <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-2xl shadow-slate-200/50">
-                      <div className="flex flex-wrap items-center gap-4 mb-6"><span className="bg-blue-50 text-blue-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-blue-100">{consultingProject.subject || consultingProject.category}</span>{consultingProject.grade && (<span className="bg-purple-600 text-white px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-purple-100">Grade: {consultingProject.grade}</span>)}<span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${consultingProject.status === ProjectStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>{consultingProject.status}</span></div>
+                      <div className="flex flex-wrap items-center gap-4 mb-6">
+                        <span className="bg-blue-50 text-blue-600 px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-blue-100">
+                          {consultingProject.subject || consultingProject.category}</span>
+                        {consultingProject.grade && (<span className="bg-purple-600 text-white px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-purple-100">Grade: {consultingProject.grade}</span>)}
+                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${consultingProject.status === ProjectStatus.COMPLETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                          {consultingProject.status}
+                        </span>
+                      </div>
                       <h1 className="text-5xl font-black text-slate-900 tracking-tighter italic mb-8 leading-tight">{consultingProject.title}</h1>
                       <div className="bg-slate-50 p-10 rounded-[3rem] border border-slate-100 shadow-inner mb-10"><p className="text-slate-700 text-xl font-medium leading-relaxed">{consultingProject.description}</p></div>
-                      <div className="flex items-center gap-6"><span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ressources & Liens :</span><div className="flex gap-4">{consultingProject.githubLink && (<a href={consultingProject.githubLink} target="_blank" rel="noreferrer" className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform shadow-xl"><svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg></a>)}{consultingProject.linkedinLink && (<a href={consultingProject.linkedinLink} target="_blank" rel="noreferrer" className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform shadow-xl"><svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>)}{consultingProject.otherLink && (<a href={consultingProject.otherLink} target="_blank" rel="noreferrer" className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform shadow-xl"><svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a>)}</div></div>
+                      <div className="flex items-center gap-6">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ressources & Liens :</span>
+                        <div className="flex gap-4">{consultingProject.githubLink && (<a href={consultingProject.githubLink} target="_blank" rel="noreferrer" className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform shadow-xl">
+                          <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                          </svg>
+                          </a>)}
+                          {consultingProject.linkedinLink && (<a href={consultingProject.linkedinLink} target="_blank" rel="noreferrer" className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform shadow-xl">
+                            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                              </a>)}{consultingProject.otherLink && (<a href={consultingProject.otherLink} target="_blank" rel="noreferrer" className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-transform shadow-xl">
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a>)}</div></div>
                     </div>
                     <div className="space-y-8">
                       <div className="flex items-center justify-between px-4"><h2 className="text-3xl font-black text-slate-900 uppercase italic tracking-tighter">Évaluations Académiques</h2>{averageRating && (<div className="flex items-center gap-3"><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Score Moyen :</span><span className="text-4xl font-black text-blue-600">{averageRating}<span className="text-lg text-slate-300">/20</span></span></div>)}</div>
@@ -1181,15 +1702,32 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       {(currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.LECTURER) && (
-                        <div className="bg-white p-10 rounded-[3.5rem] border-2 border-slate-100 shadow-lg"><h5 className="font-black text-slate-900 uppercase tracking-tighter italic mb-8 border-b-2 border-blue-600 w-fit pb-1">Nouvel Avis Académique</h5><div className="grid grid-cols-1 md:grid-cols-4 gap-8"><div className="md:col-span-1 space-y-2"><label className="text-[9px] font-black text-slate-600 uppercase px-2">Note (/20)</label><input type="number" min="0" max="20" value={newReview.rating} onChange={e => setNewReview({...newReview, rating: Number(e.target.value)})} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 font-black text-xl text-blue-700 focus:border-blue-500 outline-none" /></div><div className="md:col-span-3 space-y-2"><label className="text-[9px] font-black text-slate-600 uppercase px-2">Commentaire</label><textarea rows={1} value={newReview.comment} onChange={e => setNewReview({...newReview, comment: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 font-bold text-slate-900 text-sm focus:border-blue-500 outline-none resize-none placeholder:text-slate-400" placeholder="Qualité du rendu..." /></div></div><button onClick={handleAddReview} className="mt-8 w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">Publier l'évaluation</button></div>
+                        <div className="bg-white p-10 rounded-[3.5rem] border-2 border-slate-100 shadow-lg">
+                          <h5 className="font-black text-slate-900 uppercase tracking-tighter italic mb-8 border-b-2 border-blue-600 w-fit pb-1">Nouvel Avis Académique</h5><div className="grid grid-cols-1 md:grid-cols-4 gap-8"><div className="md:col-span-1 space-y-2"><label className="text-[9px] font-black text-slate-600 uppercase px-2">Note (/20)</label><input type="number" min="0" max="20" value={newReview.rating} onChange={e => setNewReview({...newReview, rating: Number(e.target.value)})} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 font-black text-xl text-blue-700 focus:border-blue-500 outline-none" /></div><div className="md:col-span-3 space-y-2"><label className="text-[9px] font-black text-slate-600 uppercase px-2">Commentaire</label><textarea rows={1} value={newReview.comment} onChange={e => setNewReview({...newReview, comment: e.target.value})} className="w-full px-6 py-4 rounded-2xl bg-slate-50 border-2 border-slate-200 font-bold text-slate-900 text-sm focus:border-blue-500 outline-none resize-none placeholder:text-slate-400" placeholder="Qualité du rendu..." /></div></div>
+                        <button onClick={handleAddReview} className="mt-8 w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">Publier l'évaluation</button></div>
                       )}
                     </div>
                   </div>
                   <div className="space-y-12">
                     {authorData && (
-                      <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-2xl shadow-slate-200/50 flex flex-col items-center text-center"><div className="relative mb-6">{authorData.avatar ? <img src={authorData.avatar} className="w-32 h-32 rounded-[2.5rem] border-8 border-slate-50 shadow-inner object-cover" /> : <div className="w-32 h-32 rounded-[2.5rem] bg-blue-100 flex items-center justify-center text-blue-600 text-4xl font-black">{authorData.name.charAt(0)}</div>}<div className="absolute -bottom-2 -right-2 bg-emerald-500 w-8 h-8 rounded-full border-4 border-white"></div></div><h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic mb-1">{authorData.name}</h3><p className="text-slate-500 font-bold text-sm mb-6">{authorData.email}</p><div className="grid grid-cols-2 gap-3 w-full mb-8"><div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100"><span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Cycle</span><span className="font-bold text-slate-800 text-xs">{authorData.cycle || "N/A"}</span></div><div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100"><span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Status</span><span className="font-bold text-slate-800 text-xs">{authorData.status || "N/A"}</span></div><div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100 col-span-2"><span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Niveau</span><span className="font-bold text-slate-800 text-xs">{authorData.level || "N/A"}</span></div></div><div className="text-left w-full space-y-3"><span className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4">Biographie :</span><p className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 text-slate-700 font-medium text-sm leading-relaxed italic">{authorData.bio || "Aucune biographie disponible."}</p></div></div>
+                      <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-2xl shadow-slate-200/50 flex flex-col items-center text-center">
+                        <div className="relative mb-6">{authorData.avatar ? <img src={authorData.avatar} className="w-32 h-32 rounded-[2.5rem] border-8 border-slate-50 shadow-inner object-cover" /> : <div className="w-32 h-32 rounded-[2.5rem] bg-blue-100 flex items-center justify-center text-blue-600 text-4xl font-black">
+                          {authorData.name.charAt(0)}</div>}<div className="absolute -bottom-2 -right-2 bg-emerald-500 w-8 h-8 rounded-full border-4 border-white"></div></div>
+                          <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic mb-1">{authorData.name}</h3>
+                          <p className="text-slate-500 font-bold text-sm mb-6">{authorData.email}</p><div className="grid grid-cols-2 gap-3 w-full mb-8"><div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100">
+                        <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Cycle</span>
+                        <span className="font-bold text-slate-800 text-xs">{authorData.cycle || "N/A"}</span></div><div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100">
+                          <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">departement</span>
+                        <span className="font-bold text-slate-800 text-xs">{authorData.department || "N/A"}</span></div><div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100">
+                          <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Status</span>
+                          <span className="font-bold text-slate-800 text-xs">{authorData.status || "N/A"}</span></div><div className="bg-slate-50 p-4 rounded-[1.5rem] border border-slate-100 col-span-2">
+                            <span className="block text-[8px] font-black text-slate-500 uppercase mb-1">Niveau</span>
+                            <span className="font-bold text-slate-800 text-xs">{authorData.level || "N/A"}</span></div></div><div className="text-left w-full space-y-3">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4">Biographie :</span>
+                              <p className="bg-slate-50/50 p-6 rounded-[2rem] border border-slate-100 text-slate-700 font-medium text-sm leading-relaxed italic">{authorData.bio || "Aucune biographie disponible."}</p></div></div>
                     )}
-                    <div className="space-y-6"><h4 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter px-4">Équipe Collaboratrice</h4><div className="space-y-4">{consultingProject.collaborators?.map((c, i) => (<div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:border-blue-300 transition-colors"><div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-500 font-black text-xs border border-slate-100">{c.name.charAt(0)}</div><div className="flex-1 overflow-hidden"><p className="font-black text-slate-900 text-sm truncate">{c.name}</p><p className="text-[10px] text-slate-500 font-bold truncate">{c.email}</p>{c.level && <p className="text-[9px] text-blue-600 font-black uppercase mt-1">{c.level}</p>}</div></div>))}{(!consultingProject.collaborators || consultingProject.collaborators.length === 0) && (<div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] text-slate-400 font-bold italic text-xs">Projet individuel.</div>)}</div></div>
+                    <div className="space-y-6"><h4 className="text-xl font-black text-slate-900 uppercase italic tracking-tighter px-4">Équipe Collaboratrice</h4><div className="space-y-4">{consultingProject.collaborators?.map((c, i) => (<div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:border-blue-300 transition-colors">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-500 font-black text-xs border border-slate-100">{c.name.charAt(0)}</div><div className="flex-1 overflow-hidden"><p className="font-black text-slate-900 text-sm truncate">{c.name}</p><p className="text-[10px] text-slate-500 font-bold truncate">{c.email}</p>{c.level && <p className="text-[9px] text-blue-600 font-black uppercase mt-1">{c.level}</p>}</div></div>))}{(!consultingProject.collaborators || consultingProject.collaborators.length === 0) && (<div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] text-slate-400 font-bold italic text-xs">Projet individuel.</div>)}</div></div>
                   </div>
                 </div>
               </div>
@@ -1234,10 +1772,10 @@ const App: React.FC = () => {
                 <div className="w-full space-y-12">
                   <div className="text-center">
                     <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">
-                      Profil Public
+                      Profil 
                     </h3>
                     <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-[0.2em] mt-2">
-                      Gérez vos informations académiques
+                      Gérez vos informations 
                     </p>
                   </div>
                   
@@ -1297,7 +1835,7 @@ const App: React.FC = () => {
                         <option value="Lettres & Langues">Lettres & Langues</option>
                       </select>
                     </div>
-                    
+                  
                     {/* Statut Actuel */}
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest px-4">
@@ -1313,6 +1851,29 @@ const App: React.FC = () => {
                         <option value="Alumni">Ancien (Alumni)</option>
                         <option value="Staff">Personnel (Staff)</option>
                         <option value="Faculty">Enseignant (Faculty)</option>
+                        <option value="Administration">Administration</option>
+                      </select>
+                    </div>
+
+                    {/* niveau Actuel */}
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest px-4">
+                        Niveau Actuel
+                      </label>
+                      <select 
+                        value={profileForm.level || ''} 
+                        onChange={e => setProfileForm({...profileForm, level: e.target.value})} 
+                        className="w-full px-8 py-5 bg-slate-50 dark:bg-slate-700 border-2 border-slate-100 dark:border-slate-600 rounded-[2rem] font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all appearance-none"
+                      >
+                        <option value="Niveau 1">Niveau 1 (Semestre 1)</option>
+                        <option value="Niveau 1">Niveau 1 (Semestre 2)</option>
+                        <option value="Niveau 2">Niveau 2 (Semestre 1)</option>
+                        <option value="Niveau 2">Niveau 2 (Semestre 2)</option>
+                        <option value="Niveau 3"> Niveau 3 (Semestre 1)</option>
+                        <option value="Niveau 3"> Niveau 3 (Semestre 2)</option>
+                        <option value="Niveau 4"> Niveau 4 (Semestre 1)</option>
+                        <option value="Niveau 4"> Niveau 4 (Semestre 2)</option>
+                        <option value="corps Enseignant"> Enseignant</option>
                         <option value="Administration">Administration</option>
                       </select>
                     </div>
@@ -1367,7 +1928,39 @@ const App: React.FC = () => {
         </div>
       </main>
       {isPostModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6"><div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl" onClick={() => setIsPostModalOpen(false)}></div><div className="bg-white rounded-[4rem] w-full max-w-2xl z-10 shadow-2xl animate-modalScale flex flex-col overflow-hidden"><div className="p-10 border-b border-slate-100 shrink-0"><h3 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">{newPost.id ? 'Modifier la discussion' : 'Ouvrir un débat'}</h3></div><div className="p-10 space-y-8 overflow-y-auto custom-scrollbar flex-1"><input type="text" value={newPost.title} onChange={e => setNewPost({...newPost, title: e.target.value})} className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] text-gray-900 font-bold outline-none transition-all" placeholder="Sujet..." /><textarea rows={5} value={newPost.content} onChange={e => setNewPost({...newPost, content: e.target.value})} className="w-full px-8 py-6 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] text-gray-900 font-medium outline-none transition-all resize-none" placeholder="Détails..." /><div className="flex flex-wrap gap-3">{['Discussion', 'Aide', currentUser.role === UserRole.ADMIN ? 'Annonce' : null, currentUser.role === UserRole.LECTURER ? 'Exercices' : null].filter(Boolean).map(cat => (<button key={cat as string} onClick={() => setNewPost({...newPost, category: cat as any})} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border-2 ${newPost.category === cat ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>{cat}</button>))}</div></div><div className="p-10 bg-slate-50 border-t border-slate-100 flex justify-end gap-6 shrink-0"><button onClick={() => setIsPostModalOpen(false)} className="px-8 py-4 font-black text-slate-500 uppercase tracking-widest text-[10px]">Annuler</button><button onClick={handleSavePost} className="px-14 py-5 bg-blue-600 text-white font-black rounded-[1.5rem] shadow-2xl shadow-blue-200 uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all active:scale-95">{newPost.id ? 'Mettre à jour' : 'Diffuser'}</button></div></div></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl" 
+        onClick={() => setIsPostModalOpen(false)}>
+        </div>
+        <div className="bg-white rounded-[4rem] w-full max-w-2xl z-10 shadow-2xl animate-modalScale flex flex-col overflow-hidden">
+        <div className="p-10 border-b border-slate-100 shrink-0">
+        <h3 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">
+        {newPost.id ? 'Modifier la discussion' : 'Ouvrir un débat'}
+        </h3>
+        </div>
+        <div className="p-10 space-y-8 overflow-y-auto custom-scrollbar flex-1">
+        <input type="text" value={newPost.title} 
+        onChange={e => setNewPost({...newPost, title: e.target.value})} 
+        className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] text-gray-900 font-bold outline-none transition-all" 
+        placeholder="Sujet..." />
+        <textarea rows={5} value={newPost.content} 
+        onChange={e => setNewPost({...newPost, content: e.target.value})} 
+        className="w-full px-8 py-6 bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] text-gray-900 font-medium outline-none transition-all resize-none" 
+        placeholder="Détails..." />
+        <div className="flex flex-wrap gap-3">
+          {['Discussion', 'Aide', currentUser.role === UserRole.ADMIN ? 'Annonce' : null, currentUser.role === UserRole.LECTURER ? 'Exercices' : null].filter(Boolean).map(cat => (<button key={cat as string} 
+          onClick={() => setNewPost({...newPost, category: cat as any})} className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border-2 ${newPost.category === cat ? 'bg-blue-600 text-white border-blue-600 shadow-xl' : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'}`}>{cat}
+          </button>
+          ))}</div>
+        </div>
+          <div className="p-10 bg-slate-50 border-t border-slate-100 flex justify-end gap-6 shrink-0">
+            <button onClick={() => setIsPostModalOpen(false)} className="px-8 py-4 font-black text-slate-500 uppercase tracking-widest text-[10px]">Annuler</button>
+            <button onClick={handleSavePost} className="px-14 py-5 bg-blue-600 text-white font-black rounded-[1.5rem] shadow-2xl shadow-blue-200 uppercase tracking-widest text-[10px] hover:bg-blue-700 transition-all active:scale-95">
+              {newPost.id ? 'Mettre à jour' : 'Diffuser'}
+            </button>
+              </div>
+              </div>
+          </div>
       )}
       {/* Modal de prévisualisation PDF */}
       {pdfPreview && (

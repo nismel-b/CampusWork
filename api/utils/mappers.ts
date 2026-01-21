@@ -1,0 +1,111 @@
+import { User, Project, Post, ProjectStatus } from '../../types';
+
+/**
+ * 🔄 HELPERS DE CONVERSION snake_case ↔ camelCase
+ */
+
+// Convertir un projet Supabase (snake_case) → Frontend (camelCase)
+export const normalizeProject = (proj: any): Project => {
+  if (!proj) return proj;
+  
+  return {
+    id: proj.id,
+    authorId: proj.author_id || proj.authorId,
+    authorName: proj.author_name || proj.authorName,
+    title: proj.title,
+    description: proj.description,
+    category: proj.category,
+    subject: proj.subject,
+    status: proj.status,
+    grade: proj.grade,
+    coverImage: proj.cover_image || proj.coverImage,
+    demoVideo: proj.demo_video || proj.demoVideo,
+    videoType: proj.video_type || proj.videoType,
+    githubLink: proj.github_link || proj.githubLink,
+    linkedinLink: proj.linkedin_link || proj.linkedinLink,
+    otherLink: proj.other_link || proj.otherLink,
+    lecturerName: proj.lecturer_name || proj.lecturerName,
+    lecturerEmail: proj.lecturer_email || proj.lecturerEmail,
+    studentLevel: proj.student_level || proj.studentLevel,
+    collaborators: proj.collaborators || [],
+    technologies: proj.technologies || [],
+    tags: proj.tags || [],
+    attachedFile: proj.attached_file || proj.attachedFile, // ✅ Conversion ici
+    reviews: proj.reviews || [],
+    likes: proj.likes || 0,
+    likedBy: proj.liked_by || proj.likedBy || [],
+    isEvaluated: proj.is_evaluated ?? proj.isEvaluated ?? false,
+    createdAt: proj.created_at || proj.createdAt,
+  };
+};
+
+// Convertir un projet Frontend (camelCase) → Supabase (snake_case)
+export const denormalizeProject = (proj: Partial<Project>): any => {
+  const result: any = {};
+  
+  if (proj.authorId !== undefined) result.author_id = proj.authorId;
+  if (proj.authorName !== undefined) result.author_name = proj.authorName;
+  if (proj.title !== undefined) result.title = proj.title;
+  if (proj.description !== undefined) result.description = proj.description;
+  if (proj.category !== undefined) result.category = proj.category;
+  if (proj.subject !== undefined) result.subject = proj.subject;
+  if (proj.status !== undefined) result.status = proj.status;
+  if (proj.grade !== undefined) result.grade = proj.grade;
+  if (proj.coverImage !== undefined) result.cover_image = proj.coverImage;
+  if (proj.demoVideo !== undefined) result.demo_video = proj.demoVideo;
+  if (proj.videoType !== undefined) result.video_type = proj.videoType;
+  if (proj.githubLink !== undefined) result.github_link = proj.githubLink;
+  if (proj.linkedinLink !== undefined) result.linkedin_link = proj.linkedinLink;
+  if (proj.otherLink !== undefined) result.other_link = proj.otherLink;
+  if (proj.lecturerName !== undefined) result.lecturer_name = proj.lecturerName;
+  if (proj.lecturerEmail !== undefined) result.lecturer_email = proj.lecturerEmail;
+  if (proj.studentLevel !== undefined) result.student_level = proj.studentLevel;
+  if (proj.collaborators !== undefined) result.collaborators = proj.collaborators;
+  if (proj.technologies !== undefined) result.technologies = proj.technologies;
+  if (proj.tags !== undefined) result.tags = proj.tags;
+  if (proj.attachedFile !== undefined) result.attached_file = proj.attachedFile; // ✅ Conversion ici
+  if (proj.reviews !== undefined) result.reviews = proj.reviews;
+  if (proj.likes !== undefined) result.likes = proj.likes;
+  if (proj.likedBy !== undefined) result.liked_by = proj.likedBy;
+  if (proj.isEvaluated !== undefined) result.is_evaluated = proj.isEvaluated;
+  
+  return result;
+};
+
+// Convertir un post Supabase → Frontend
+export const normalizePost = (post: any): Post => {
+  if (!post) return post;
+  
+  return {
+    id: post.id,
+    authorId: post.author_id || post.authorId,
+    authorName: post.author_name || post.authorName,
+    title: post.title,
+    content: post.content,
+    category: post.category,
+    likes: post.likes || 0,
+    likedBy: post.liked_by || post.likedBy || [],
+    comments: post.comments || 0,
+    replies: post.replies || [],
+    blocked: post.blocked || false,
+    createdAt: post.created_at || post.createdAt,
+  };
+};
+
+// Convertir un post Frontend → Supabase
+export const denormalizePost = (post: Partial<Post>): any => {
+  const result: any = {};
+  
+  if (post.authorId !== undefined) result.author_id = post.authorId;
+  if (post.authorName !== undefined) result.author_name = post.authorName;
+  if (post.title !== undefined) result.title = post.title;
+  if (post.content !== undefined) result.content = post.content;
+  if (post.category !== undefined) result.category = post.category;
+  if (post.likes !== undefined) result.likes = post.likes;
+  if (post.likedBy !== undefined) result.liked_by = post.likedBy;
+  if (post.comments !== undefined) result.comments = post.comments;
+  if (post.replies !== undefined) result.replies = post.replies;
+  if (post.blocked !== undefined) result.blocked = post.blocked;
+  
+  return result;
+};

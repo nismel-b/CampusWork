@@ -2,7 +2,7 @@
 import React from 'react';
 import { ICONS } from '../constants';
 import { View, UserRole } from '../../types';
-import logo from '../assets/logo.png';
+import logo_ from '../assets/logo_.jpeg';
 
 interface SidebarProps {
   currentView: View;
@@ -32,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, role, isCollaps
               <path fillRule="evenodd" d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8-7a7 7 0 00-7 7 7 7 0 1114 0 7 7 0 00-7-7z" clipRule="evenodd" />
             </svg>*/}
             <div className="bg-white w-24 h-24 rounded-[2rem] shadow-2xl flex items-center justify-center overflow-hidden mb-8">
-            <img src={logo} alt="Logo CampusWork" className="w-full h-full object-contain p-1" />
+            <img src={logo_} alt="Logo CampusWork" className="w-full h-full object-contain p-0.8" />
             </div>
           {!isCollapsed && (
             <div className="flex flex-col">
@@ -82,7 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, role, isCollaps
         {!isCollapsed ? (
           <div className="flex flex-col gap-1">
             <p className="text-[10px] font-black text-blue-300/60 uppercase tracking-widest">Version v1.2</p>
-            <p className="text-[9px] text-blue-200/40">© 2025 Digital Library</p>
+            <p className="text-[9px] text-blue-200/40">© 2026 Digital Library</p>
           </div>
         ) : (
           <div className="text-center font-black text-[10px] text-blue-300/40 tracking-widest">v1.2</div>

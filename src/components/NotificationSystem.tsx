@@ -265,15 +265,25 @@ export const NotificationHelpers = {
     message: `Votre discussion "${postTitle}" a été supprimée par un administrateur`,
     relatedTitle: postTitle
   }),
+   createProjectDeleted: (recipientId: string, projectTitle: string) => ({
+    id: `notif-${Date.now()}-${Math.random()}`,
+    userId: recipientId,
+    type: 'project_deleted' as const,
+    title: '🗑️ Projet supprimé',
+    message: `Votre projet "${projectTitle}" a été supprimé par un administrateur`,
+    read: false,
+    createdAt: new Date().toISOString(),
+    link: '/projects'
+  }),
 
-  // 🗑️ Projet supprimé
+  /*// 🗑️ Projet supprimé
   createProjectDeleted: (userId: string, projectTitle: string): Omit<Notification, 'id' | 'createdAt' | 'read'> => ({
     userId,
     type: 'project_deleted',
     title: 'Projet supprimé',
     message: `Votre projet "${projectTitle}" a été supprimé`,
     relatedTitle: projectTitle
-  }),
+  }),*/
 
   // ✅ Compte approuvé
   createAccountApproved: (userId: string): Omit<Notification, 'id' | 'createdAt' | 'read'> => ({

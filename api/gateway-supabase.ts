@@ -13,13 +13,17 @@ import { supabaseDatabaseService } from './services/supabaseDatabaseService';
 import { supabaseStorageService } from './services/supabaseStorageService';
 import { notificationService } from './services/notificationService';
 import { TABLES } from './config/supabase';
-
+import { normalizeProject, 
+  denormalizeProject, 
+  normalizePost, 
+  denormalizePost 
+} from './utils/mappers';
 /**
  * 🔄 HELPERS DE CONVERSION snake_case ↔ camelCase
  */
 
 // Convertir un projet Supabase (snake_case) → Frontend (camelCase)
-const normalizeProject = (proj: any): Project => {
+/*const normalizeProject = (proj: any): Project => {
   if (!proj) return proj;
   
   return {
@@ -122,7 +126,7 @@ const denormalizePost = (post: Partial<Post>): any => {
   if (post.blocked !== undefined) result.blocked = post.blocked;
   
   return result;
-};
+};*/
 
 /**
  * CAMPUSWORK UNIFIED API GATEWAY (SUPABASE VERSION)
