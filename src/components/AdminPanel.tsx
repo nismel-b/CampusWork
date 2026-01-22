@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User, UserRole, Post } from '../../types';
 import { ICONS } from '../constants';
-import { apiGateway } from '@/api/gateway-supabase';
+import { apiGateway } from '../api/gateway-supabase';
 
 interface AdminPanelProps {
   users: User[];

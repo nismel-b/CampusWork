@@ -11,7 +11,7 @@ import { User, Project, UserRole, View, Post, ProjectStatus, Language, PostCateg
 import PDFPreviewModal from './components/PDFPreviewModal';
 import { ICONS } from './constants';
 import { translations } from '../translations';
-import { apiGateway } from '../api/gateway-supabase';
+import { apiGateway } from './api/gateway-supabase';
 import MediaUploader from './components/MediaUploader';
 import FileUploader from './components/FileUploader';
 import TechTagsInput from './components/TechTagsInput';

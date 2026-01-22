@@ -1,4 +1,4 @@
-import { User, Project, Post, ProjectStatus } from '../../types';
+import { User, Project, Post, ProjectStatus } from '../../../types';
 
 /**
  * 🔄 HELPERS DE CONVERSION snake_case ↔ camelCase

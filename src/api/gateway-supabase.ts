@@ -7,7 +7,7 @@ import { notificationService } from './services/notificationService'; // FCM (in
 import { TABLES } from './config/supabase';*/
 
 // src/api/gateway-supabase.ts
-import { User, Project, Post, ProjectStatus } from '../types';
+import { User, Project, Post, ProjectStatus } from '../../types';
 import { authService } from './services/authService-supabase';
 import { supabaseDatabaseService } from './services/supabaseDatabaseService';
 import { supabaseStorageService } from './services/supabaseStorageService';

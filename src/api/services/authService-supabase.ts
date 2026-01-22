@@ -11,7 +11,7 @@ import {
 import { auth, googleProvider } from '../config/firebase';
 import { supabaseDatabaseService } from './supabaseDatabaseService';
 import { TABLES } from '../config/supabase';
-import { User, UserRole } from '../../types';
+import { User, UserRole } from '../../../types';
 
 /**
  * SERVICE D'AUTHENTIFICATION (Firebase Auth + Supabase DB)
