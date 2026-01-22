@@ -17,7 +17,7 @@ import FileUploader from './components/FileUploader';
 import TechTagsInput from './components/TechTagsInput';
 import { NotificationHelpers, useNotifications } from './components/NotificationSystem';
 import NotificationPanel from './components/NotificationsPanel';
-//import { relative } from 'path';
+
 
 const LETTER_GRADES: LetterGrade[] = ['A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F'];
 
@@ -257,28 +257,7 @@ const App: React.FC = () => {
     }
   };
 
-  /*const handleLike = (postId: string) => {
-    if (!currentUser) return;
-    setPosts(prev => prev.map(p => {
-      if (p.id !== postId) return p;
-      const likedBy = p.likedBy || [];
-      const hasLiked = likedBy.includes(currentUser.id);
-      const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
-      const updatedPost = { ...p, likedBy: newLikedBy, likes: hasLiked ? Math.max(0, p.likes - 1) : p.likes + 1 };
-      // 🔔 NOTIFICATION: Quelqu'un like votre post
-      if (!hasLiked && p.authorId !== currentUser.id) {
-        addNotification(
-          NotificationHelpers.createPostLike(
-            p.authorId,
-            currentUser.name,
-            p.title,
-            p.id
-          )
-        );}
-      if (selectedPost && selectedPost.id === postId) setSelectedPost(updatedPost);
-      return updatedPost;
-    }));
-  };*/
+
 
   // ✅ LIKE POST AVEC PERSISTANCE
   const handleLike = async (postId: string) => {
@@ -322,27 +301,6 @@ const App: React.FC = () => {
     }
   };
 
-  /*const handleProjectLike = (projectId: string) => {
-    if (!currentUser) return;
-    setProjects(prev => prev.map(p => {
-      if (p.id !== projectId) return p;
-      const likedBy = p.likedBy || [];
-      const hasLiked = likedBy.includes(currentUser.id);
-      const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
-      // 🔔 NOTIFICATION: Quelqu'un like votre projet
-      if (!hasLiked && p.authorId !== currentUser.id) {
-        addNotification(
-          NotificationHelpers.createProjectLike(
-            p.authorId,
-            currentUser.name,
-            p.title,
-            p.id
-          )
-        );
-      }
-      return { ...p, likedBy: newLikedBy, likes: hasLiked ? Math.max(0, (p.likes || 0) - 1) : (p.likes || 0) + 1 };
-    }));
-  };*/
 
   // ✅ LIKE PROJECT AVEC PERSISTANCE
   const handleProjectLike = async (projectId: string) => {
@@ -437,28 +395,7 @@ const App: React.FC = () => {
     setIsPostModalOpen(true);
   };
 
-  /*const handleDeletePost = (postId: string) => {
-    if (window.confirm("Voulez-vous vraiment supprimer ce post ?")) {
-       
-      const post = posts.find(p => p.id === postId);
-    
-    // 🔔 NOTIFICATION: Post supprimé (si admin supprime le post d'un autre)
-    if (post && currentUser && post.authorId !== currentUser.id) {
-      addNotification(
-        NotificationHelpers.createPostDeleted(
-          post.authorId,
-          post.title
-        )
-      );
-    }
-
-      setPosts(prev => prev.filter(p => p.id !== postId));
-      if (selectedPost?.id === postId) {
-        setView('posts');
-        setSelectedPost(null);
-      }
-    }
-  };*/
+ 
 
   const handleDeletePost = async (postId: string) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce post ?")) return;
@@ -490,22 +427,7 @@ const App: React.FC = () => {
     }
   };
 
-
-  /*const handleCommentAction = () => {
-    if (!commentInput.trim() || !currentUser || !selectedPost) return;
-
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      content: commentInput,
-      createdAt: new Date().toLocaleDateString(),
-      likes: 0,
-      likedBy: [],
-      replies: []
-    };*/
-
-    // ✅ COMMENTAIRE AVEC PERSISTANCE
+// ✅ COMMENTAIRE AVEC PERSISTANCE
   const handleCommentAction = async () => {
     if (!commentInput.trim() || !currentUser || !selectedPost) return;
 
@@ -520,98 +442,6 @@ const App: React.FC = () => {
       replies: []
     };
 
-    /*const updateComments = (comments: Comment[]): Comment[] => {
-      if (replyingTo) {
-        return comments.map(c => {
-          // 🔔 NOTIFICATION: Réponse à un commentaire
-            if (c.authorId !== currentUser.id) {
-              addNotification(
-                NotificationHelpers.createCommentReply(
-                  c.authorId,
-                  currentUser.name,
-                  selectedPost.title,
-                  selectedPost.id
-                )
-              );
-            }
-
-          if (c.id === replyingTo.commentId) {
-            return { ...c, replies: [...(c.replies || []), newComment] };
-          }
-          if (c.replies) return { ...c, replies: updateComments(c.replies) };
-          return c;
-        });
-      }
-      return [...comments, newComment];
-    };
-
-    const updatedReplies = updateComments(selectedPost.replies || []);
-    const updatedPost = { ...selectedPost, replies: updatedReplies, comments: selectedPost.comments + 1 };
-    // 🔔 NOTIFICATION: Nouveau commentaire sur votre post
-    if (!replyingTo && selectedPost.authorId !== currentUser.id) {
-      addNotification(
-        NotificationHelpers.createPostReply(
-          selectedPost.authorId,
-          currentUser.name,
-          selectedPost.title,
-          selectedPost.id
-        )
-      );
-    }
-    
-    
-    setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
-    setSelectedPost(updatedPost);
-    setCommentInput('');
-    setReplyingTo(null);
-  };*/
-
-  /*const handleEditComment = (commentId: string, content: string) => {
-    setCommentInput(content);
-    setEditingCommentId(commentId);
-  };
-
-  const handleUpdateComment = () => {
-    if (!editingCommentId || !currentUser || !selectedPost) return;
-
-    const updateRecursive = (comments: Comment[]): Comment[] => {
-      return comments.map(c => {
-        if (c.id === editingCommentId) return { ...c, content: commentInput };
-        if (c.replies) return { ...c, replies: updateRecursive(c.replies) };
-        return c;
-      });
-    };
-
-    const updatedReplies = updateRecursive(selectedPost.replies || []);
-    const updatedPost = { ...selectedPost, replies: updatedReplies };
-    
-    setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
-    setSelectedPost(updatedPost);
-    setCommentInput('');
-    setEditingCommentId(null);
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    if (!selectedPost || !window.confirm("Supprimer ce commentaire ?")) return;
-
-    let removedCount = 0;
-    const deleteRecursive = (comments: Comment[]): Comment[] => {
-      return comments.filter(c => {
-        if (c.id === commentId) {
-          removedCount += 1 + (c.replies?.length || 0);
-          return false;
-        }
-        if (c.replies) c.replies = deleteRecursive(c.replies);
-        return true;
-      });
-    };
-
-    const updatedReplies = deleteRecursive(selectedPost.replies || []);
-    const updatedPost = { ...selectedPost, replies: updatedReplies, comments: Math.max(0, selectedPost.comments - removedCount) };
-    
-    setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
-    setSelectedPost(updatedPost);
-  };*/
 
   const updateComments = (comments: Comment[]): Comment[] => {
       if (replyingTo) {
@@ -740,65 +570,6 @@ const App: React.FC = () => {
     }
   };
 
-  /*const handleLikeComment = (commentId: string) => {
-    if (!selectedPost || !currentUser) return;
-
-    const likeRecursive = (comments: Comment[]): Comment[] => {
-      return comments.map(c => {
-        if (c.id === commentId) {
-          const likedBy = c.likedBy || [];
-          const hasLiked = likedBy.includes(currentUser.id);
-          const newLikedBy = hasLiked ? likedBy.filter(id => id !== currentUser.id) : [...likedBy, currentUser.id];
-          
-          return { ...c, likedBy: newLikedBy, likes: hasLiked ? Math.max(0, (c.likes || 0) - 1) : (c.likes || 0) + 1 };
-        }
-        if (c.replies) return { ...c, replies: likeRecursive(c.replies) };
-        return c;
-      });
-      
-    };
-
-    const updatedReplies = likeRecursive(selectedPost.replies || []);
-     
-    const updatedPost = { ...selectedPost, replies: updatedReplies };
-    
-    setPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
-    setSelectedPost(updatedPost);
-  };*/
-
-  /*const handleSaveProject = async () => {
-    if (!editingProject || !currentUser) return;
-    try {
-      const savedProject = await apiGateway.db.projects.save(editingProject, currentUser);
-      if (editingProject.id) {
-        setProjects(prev => prev.map(p => p.id === savedProject.id ? savedProject : p));
-      } else {
-
-        // 🔔 NOTIFICATION: Nouveau projet (pour enseignants et admins)
-        users
-          .filter(u => 
-            (u.role === UserRole.LECTURER || u.role === UserRole.ADMIN) && 
-            u.id !== currentUser.id
-          )
-          .forEach(u => {
-            addNotification(
-              NotificationHelpers.createNewProject(
-                u.id,
-                currentUser.name,
-                savedProject.title,
-                savedProject.id
-              )
-            );
-          });
-        
-        setProjects(prev => [savedProject, ...prev]);
-      }
-      setView('projects');
-      setEditingProject(null);
-    } catch (error: any) {
-      alert(error.message);
-    }
-  };*/
 
   // ✅ LIKE COMMENT AVEC PERSISTANCE
   const handleLikeComment = async (commentId: string) => {
@@ -884,53 +655,7 @@ const App: React.FC = () => {
     }
   };
 
-  /*const handleAddReview = () => {
-    if (!consultingProject || !currentUser || (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.LECTURER)) return;
-    const review: Review = {
-      id: `rev-${Date.now()}`,
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      rating: newReview.rating,
-      comment: newReview.comment,
-      createdAt: new Date().toLocaleDateString()
-    };
-
-    const grade = calculateLetterGrade(newReview.rating);
-    const updatedProject = {
-      ...consultingProject,
-      reviews: [...(consultingProject.reviews || []), review],
-      isEvaluated: true, 
-      grade
-    };
-
-    // 🔔 NOTIFICATION: Évaluation de projet
-    if (consultingProject.authorId !== currentUser.id) {
-      addNotification(
-        NotificationHelpers.createProjectEvaluation(
-          consultingProject.authorId,
-          currentUser.name,
-          consultingProject.title,
-          grade,
-          consultingProject.id
-        )
-      );
-    }
-
-    setProjects(prev => prev.map(p => p.id === consultingProject.id ? updatedProject : p));
-    setConsultingProject(updatedProject);
-    setNewReview({ rating: 0, comment: '' });
-  };
-  // Helper pour convertir note sur 20 en lettre
-  const calculateLetterGrade = (rating: number): LetterGrade => {
-    if (rating >= 18) return 'A';
-    if (rating >= 16) return 'B+';
-    if (rating >= 14) return 'B';
-    if (rating >= 12) return 'C+';
-    if (rating >= 10) return 'C';
-    if (rating >= 8) return 'D+';
-    if (rating >= 6) return 'D';
-    return 'F';
-  };*/
+  
 
   // ✅ ADD REVIEW AVEC PERSISTANCE
   const handleAddReview = async () => {

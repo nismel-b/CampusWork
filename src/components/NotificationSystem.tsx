@@ -265,6 +265,7 @@ export const NotificationHelpers = {
     message: `Votre discussion "${postTitle}" a été supprimée par un administrateur`,
     relatedTitle: postTitle
   }),
+  // 🗑️ Projet supprimé
    createProjectDeleted: (recipientId: string, projectTitle: string) => ({
     id: `notif-${Date.now()}-${Math.random()}`,
     userId: recipientId,
