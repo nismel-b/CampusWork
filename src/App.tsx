@@ -213,7 +213,31 @@ const App: React.FC = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!signupData.name || !signupData.email || !signupData.password) return alert("Veuillez remplir les champs obligatoires.");
-    
+     // ✅ Validation conditionnelle pour le niveau (étudiants uniquement)
+  // Validation du nom
+  if (!signupData.name || signupData.name.trim().length < 3) {
+    return alert("Le nom complet doit contenir au moins 3 caractères.");
+  }
+  
+  // Validation de l'email
+  if (!signupData.email || !signupData.email.includes('@')) {
+    return alert("Veuillez entrer un email académique valide.");
+  }
+  
+  // Validation du mot de passe
+  if (!signupData.password || signupData.password.length < 6) {
+    return alert("Le mot de passe doit contenir au moins 6 caractères.");
+  }
+  
+  // Validation conditionnelle selon le rôle
+  if (signupData.role === UserRole.STUDENT) {
+    if (!signupData.level) {
+      return alert("Le niveau est obligatoire pour les étudiants.");
+    }
+    if (!signupData.matricule) {
+      return alert("Le matricule est obligatoire pour les étudiants.");
+    }
+  }
     try {
       const newUser = await apiGateway.auth.register(signupData);
       setUsers(prev => [...prev, newUser]);
@@ -1019,10 +1043,10 @@ const handleDeleteProject = async (projectId: string) => {
               </div>
               {signupData.role === UserRole.STUDENT && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 bg-slate-50 rounded-3xl border border-slate-100 animate-fadeIn">
-                  {/*<div className="space-y-2">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Matricule</label>
                     <input type="text" value={signupData.matricule} onChange={e => setSignupData({...signupData, matricule: e.target.value})} className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="2024XXXX" />
-                  </div>*/}
+                  </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-4 block">Cycle</label>
                     <input type="text" value={signupData.level} onChange={e => setSignupData({...signupData, level: e.target.value})} className="w-full px-6 py-4 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-900 outline-none focus:border-blue-500 transition-all" placeholder="Licence" />
@@ -1043,7 +1067,8 @@ const handleDeleteProject = async (projectId: string) => {
                   <input 
                     type={showSignupPassword ? "text" : "password"} 
                     value={signupData.password} 
-                    onChange={e => setSignupData(e.target.value)} 
+                    //onChange={e => setSignupData(e.target.value)}
+                    onChange={e => setSignupData({...signupData, password: e.target.value})} 
                     className="w-full pl-14 pr-14 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-bold text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition-all shadow-sm" 
                     placeholder="••••••••" 
                   />
